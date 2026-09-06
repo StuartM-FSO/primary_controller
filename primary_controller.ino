@@ -60,7 +60,7 @@ void loop() {
       fsm_start_up();
       break;
     case FSM_DIVE_MODE:
-      fsm_dive_mode();
+      fsm_dive_mode(now);
       break;
     case FSM_READ_CELLS:
       fsm_read_cells();
@@ -84,12 +84,23 @@ void fsm_start_up(void){
   }
 }
 
-void fsm_dive_mode(void){
+void fsm_dive_mode(const uint32_t now){
+  internal_state_t local_state = {};
 
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    Serial.println("Error reading state, fsm_dive_mode");
+    for(;;);
+  }
+
+  if(has_timer_elapsed(now, local_state.cell_read_time, FREQUENCY_CELL_READ_MS)){
+    system_set_current_state(FSM_READ_CELLS);
+    system_set_cell_read_time(now);
+  }
 }
 
 void fsm_read_cells(void){
-
+  Serial.println("fsm_read_cells");
+  system_set_current_state(FSM_DIVE_MODE);
 }
 
 

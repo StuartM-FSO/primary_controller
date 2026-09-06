@@ -1,3 +1,4 @@
+#include <sys/_stdint.h>
 #ifndef SYSTEM_STATE_H
 #define SYSTEM_STATE_H
 
