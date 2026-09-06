@@ -58,6 +58,12 @@ void loop() {
     hal_adc_status_t current_adc_status = adc_health_check();
     bool adc_online = (current_adc_status == ADC_STATUS_OK);
 
+    if(adc_online){
+      Serial.println("ADC online");
+    } else {
+      Serial.println("ADC offline");
+    }
+
     if(system_set_adc_online(adc_online) != STATE_OK){
       Serial.println("Error writing adc_onine");
       for(;;);
