@@ -1,4 +1,11 @@
+#include <stdint.h>
+// NOTES
+//  1 - HAL assumes that Wire.h has been included in main sketch and Wire.begin() has been called
+
+#include <Adafruit_ADS1X15.h>
 #include "adc_hal.h"
+
+constexpr uint8_t TRANSMISSION_OK = 0U;
 
 typedef struct{
   bool initialised;
@@ -35,10 +42,14 @@ hal_adc_status_t adc_health_check(void){
 // Private
 
 static bool is_powered(void){
-
+  return true;
 }
 
 static bool is_connected(void){
+  uint8_t result = 99U;
 
+  Wire.beginTransmission(0x48);
+  result = Wire.endTransmission();
+  return (result == TRANSMISSION_OK);
 }
 

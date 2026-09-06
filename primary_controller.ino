@@ -1,8 +1,9 @@
+#include <Wire.h>
 #include "system_state.h"
 #include "time_helpers.h"
 #include "adc_hal.h"
 
-constexpr uint32_t FREQUENCY_CELL_READ_MS = 250U;
+constexpr uint32_t FREQUENCY_CELL_READ_MS = 1000U;
 constexpr uint32_t FREQUENCY_MAIN_LED_FLASH = 1000U;
 constexpr uint32_t FREQUENCY_ADC_CHECK_MS = 1000U;
 
@@ -12,6 +13,8 @@ void setup() {
     delay(1);
   }
   Serial.println("Starting...");
+
+  Wire.begin();
 
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -31,24 +34,17 @@ void setup() {
 
 void loop() {
   uint32_t now = millis();
-  internal_state_t timers = {};
+  internal_state_t loop_state = {};
   bool time_to_read_cell = false;
-  fsm_state_t current_state;
 
-  if(system_get_current_state(&current_state) != STATE_OK){
-    Serial.println("Error getting current state");
+  if(system_get_loop_state(&loop_state) != STATE_OK){   // Create local copy of system state
+    Serial.println("Error getting loop state");
     for(;;);
     // Handle error
   }
 
-  if(system_get_timers(&timers) != STATE_OK){
-    Serial.println("Error getting timers");
-    for(;;);
-    // Handle error
-  }
-
-  if(has_timer_elapsed(now, timers.main_led_flash_time, FREQUENCY_MAIN_LED_FLASH)){ // Turn main led on & off every 1s
-    bool led_on = !system_get_main_led_on();
+  if(has_timer_elapsed(now, loop_state.main_led_flash_time, FREQUENCY_MAIN_LED_FLASH)){ // Turn main led on & off every 1s
+    bool led_on = !loop_state.main_led_on;
     digitalWrite(LED_BUILTIN, led_on);
     system_set_main_led_on(led_on);
     if(system_set_main_led_timer(now) != STATE_OK){
@@ -58,18 +54,24 @@ void loop() {
     }
   }
 
-  if(has_timer_elapsed(now, timers.adc_function_check_time, FREQUENCY_ADC_CHECK_MS)){
+  if(has_timer_elapsed(now, loop_state.adc_function_check_time, FREQUENCY_ADC_CHECK_MS)){   // Check if ADC is online
     hal_adc_status_t current_adc_status = adc_health_check();
+    bool adc_online = (current_adc_status == ADC_STATUS_OK);
 
-    if(current_adc_status != ADC_STATUS_OK){
+    if(!adc_online){
       Serial.println("ADC offline");
     } else {
       Serial.println("ADC online");
     }
+    if(system_set_adc_online(adc_online) != STATE_OK){
+      Serial.println("Error writing adc_onine");
+      for(;;);
+      // Handle error
+    }
     system_set_adc_function_check_time(now);
   }
 
-  switch (current_state) {
+  switch (loop_state.current_state) {
     case FSM_START_UP:
       fsm_start_up();
       break;
