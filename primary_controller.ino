@@ -17,7 +17,9 @@ void setup() {
 
   bool proceed = true;
 
-  if((system_init() != STATE_OK) && proceed){
+  if(system_init() != STATE_OK){
+    proceed = false;
+  } else if (adc_init() != ADC_STATUS_OK){
     proceed = false;
   }
 
@@ -57,7 +59,13 @@ void loop() {
   }
 
   if(has_timer_elapsed(now, timers.adc_function_check_time, FREQUENCY_ADC_CHECK_MS)){
-    Serial.println("Checking ADC online");
+    hal_adc_status_t current_adc_status = adc_health_check();
+
+    if(current_adc_status != ADC_STATUS_OK){
+      Serial.println("ADC offline");
+    } else {
+      Serial.println("ADC online");
+    }
     system_set_adc_function_check_time(now);
   }
 

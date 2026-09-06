@@ -16,5 +16,7 @@ typedef enum{
 
 hal_adc_status_t adc_init(void);
 
+hal_adc_status_t adc_health_check(void);
+
 
 #endif
