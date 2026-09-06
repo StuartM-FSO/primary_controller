@@ -82,7 +82,11 @@ void loop() {
 // 01 - FSM handlers
 
 void fsm_start_up(void){
-
+  if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
+    Serial.println("Error at start up transition");
+    for(;;);
+    // Handle error
+  }
 }
 
 void fsm_dive_mode(void){
