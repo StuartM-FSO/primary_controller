@@ -1,9 +1,15 @@
+#include "system_state.h"
+#include "time_helpers.h"
+
 void setup() {
-  // put your setup code here, to run once:
+  Serial.begin(115200);
+  while(!Serial){
+    delay(1);
+  }
+  Serial.println("Starting...");
 
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
 
 }
