@@ -54,15 +54,10 @@ void loop() {
     }
   }
 
-  if(has_timer_elapsed(now, loop_state.adc_function_check_time, FREQUENCY_ADC_CHECK_MS)){   // Check if ADC is online
+  if(has_timer_elapsed(now, loop_state.adc_function_check_time, FREQUENCY_ADC_CHECK_MS)){   // Check if ADC is online once a second
     hal_adc_status_t current_adc_status = adc_health_check();
     bool adc_online = (current_adc_status == ADC_STATUS_OK);
 
-    if(!adc_online){
-      Serial.println("ADC offline");
-    } else {
-      Serial.println("ADC online");
-    }
     if(system_set_adc_online(adc_online) != STATE_OK){
       Serial.println("Error writing adc_onine");
       for(;;);
