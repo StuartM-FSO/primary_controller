@@ -26,6 +26,7 @@ typedef struct{
 
   uint32_t cell_read_time;
   uint32_t main_led_flash_time;
+  uint32_t adc_function_check_time;
 } internal_state_t;
 
 system_t system_init(void);
@@ -33,6 +34,7 @@ system_t system_init(void);
 system_t system_get_timers(internal_state_t *timers);
 system_t system_set_cell_read_time(const uint32_t now);
 system_t system_set_main_led_timer(const uint32_t now);
+system_t system_set_adc_function_check_time(const uint32_t now);
 
 system_t system_get_current_state(fsm_state_t *current_state);
 system_t system_set_current_state(const fsm_state_t current_state);

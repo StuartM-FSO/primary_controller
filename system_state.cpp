@@ -16,6 +16,7 @@ system_t system_init(void){
   state.current_state = FSM_START_UP;
   state.main_led_flash_time = 0U;
   state.cell_read_time = 0U;
+  state.adc_function_check_time = 0U;
   state.main_led_om = false;
   state.initialised = true;
   return STATE_OK;
@@ -30,6 +31,7 @@ system_t system_get_timers(internal_state_t *timers){
 
   timers->cell_read_time = state.cell_read_time;
   timers->main_led_flash_time = state.main_led_flash_time;
+  timers->adc_function_check_time = state.adc_function_check_time;
   return STATE_OK;
 }
 
@@ -48,6 +50,15 @@ system_t system_set_main_led_timer(const uint32_t now){
   }
 
   state.main_led_flash_time = now;
+  return STATE_OK;
+}
+
+system_t system_set_adc_function_check_time(const uint32_t now){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+
+  state.adc_function_check_time = now;
   return STATE_OK;
 }
 
@@ -73,6 +84,7 @@ system_t system_set_current_state(const fsm_state_t current_state){
     return STATE_INVALID_PARAMETER;
   }
   state.current_state = current_state;
+  return STATE_OK;
 }
 
 // Non-critical setters & getters

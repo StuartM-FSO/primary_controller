@@ -1,8 +1,10 @@
 #include "system_state.h"
 #include "time_helpers.h"
+#include "adc-hal.h"
 
 constexpr uint32_t FREQUENCY_CELL_READ_MS = 250U;
 constexpr uint32_t FREQUENCY_MAIN_LED_FLASH = 1000U;
+constexpr uint32_t FREQUENCY_ADC_CHECK_MS = 1000U;
 
 void setup() {
   Serial.begin(115200);
@@ -43,16 +45,6 @@ void loop() {
     // Handle error
   }
 
-  if(has_timer_elapsed(now, timers.cell_read_time, FREQUENCY_CELL_READ_MS)){  // Check if time to read cells
-    Serial.println("+");
-    time_to_read_cell = true;
-    if(system_set_cell_read_time(now) != STATE_OK){
-      Serial.println("Error setting cell read timer");
-      for(;;);
-      // Handle error
-    }
-  }
-
   if(has_timer_elapsed(now, timers.main_led_flash_time, FREQUENCY_MAIN_LED_FLASH)){ // Turn main led on & off every 1s
     bool led_on = !system_get_main_led_on();
     digitalWrite(LED_BUILTIN, led_on);
@@ -62,6 +54,11 @@ void loop() {
       for(;;);
       // Handle error
     }
+  }
+
+  if(has_timer_elapsed(now, timers.adc_function_check_time, FREQUENCY_ADC_CHECK_MS)){
+    Serial.println("Checking ADC online");
+    system_set_adc_function_check_time(now);
   }
 
   switch (current_state) {
