@@ -23,7 +23,6 @@ void setup() {
     Serial.println("Start up failed");
     for(;;);
   }
-
 }
 
 void loop() {
@@ -52,30 +51,44 @@ void loop() {
       for(;;);
       // Handle error
     }
+  }
 
-    if(has_timer_elapsed(now, timers.main_led_flash_time, FREQUENCY_MAIN_LED_FLASH)){ // Turn main led on & off every 1s
-      bool led_on = !system_get_main_led_on();
-      digitalWrite(LED_BUILTIN, led_on);
-      system_set_main_led_on(led_on);
-      if(system_set_main_led_timer(now) != STATE_OK){
-        Serial.println("Error writing main led timer");
-        for(;;);
-        // Handle error
-      }
-    }
-
-    switch (current_state) {
-      case FSM_START_UP:
-        break;
-      case FSM_DIVE_MODE:
-        break;
-      case FSM_READ_CELLS:
-        break;
-      default:
-        break;
+  if(has_timer_elapsed(now, timers.main_led_flash_time, FREQUENCY_MAIN_LED_FLASH)){ // Turn main led on & off every 1s
+    bool led_on = !system_get_main_led_on();
+    digitalWrite(LED_BUILTIN, led_on);
+    system_set_main_led_on(led_on);
+    if(system_set_main_led_timer(now) != STATE_OK){
+      Serial.println("Error writing main led timer");
+      for(;;);
+      // Handle error
     }
   }
 
+  switch (current_state) {
+    case FSM_START_UP:
+      fsm_start_up();
+      break;
+    case FSM_DIVE_MODE:
+      fsm_dive_mode();
+      break;
+    case FSM_READ_CELLS:
+      fsm_read_cells();
+      break;
+    default:
+      break;
+  }
+}
 
+// 01 - FSM handlers
+
+void fsm_start_up(void){
+
+}
+
+void fsm_dive_mode(void){
+
+}
+
+void fsm_read_cells(void){
 
 }
