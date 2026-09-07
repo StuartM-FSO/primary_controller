@@ -25,6 +25,7 @@ typedef struct{
   bool initialised;
   bool main_led_on;
   bool adc_online;
+  bool display_changed;
 
   fsm_state_t current_state;
 
@@ -41,6 +42,7 @@ system_t system_set_main_led_timer(const uint32_t now);
 system_t system_set_adc_function_check_time(const uint32_t now);
 system_t system_set_adc_online(const bool adc_online);
 system_t system_set_current_state(const fsm_state_t current_state);
+system_t system_set_display_changed(const bool changed);
 
 // Non critical setters & getters
 

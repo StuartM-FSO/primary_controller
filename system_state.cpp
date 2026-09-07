@@ -19,6 +19,7 @@ system_t system_init(void){
   state.adc_function_check_time = 0U;
   state.main_led_on = false;
   state.adc_online = false;
+  state.display_changed = true;
   state.initialised = true;
   return STATE_OK;
 }
@@ -37,6 +38,7 @@ system_t system_get_loop_state(internal_state_t *loop_state){
   loop_state->main_led_on = state.main_led_on;
   loop_state->adc_online = state.adc_online;
   loop_state->initialised = state.initialised;
+  loop_state->display_changed = state.display_changed;
   return STATE_OK;
 }
 
@@ -84,6 +86,15 @@ system_t system_set_adc_online(const bool adc_online){
   }
 
   state.adc_online = adc_online;
+  return STATE_OK;
+}
+
+system_t system_set_display_changed(const bool changed){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+
+  state.display_changed = changed;
   return STATE_OK;
 }
 

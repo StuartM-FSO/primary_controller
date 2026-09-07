@@ -81,7 +81,33 @@ void loop() {
 
 // 00 - WIP
 
+system_t screen_data_mode(void){
+  internal_state_t local_state = {};
 
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    Serial.println("screen_data_mode error getting state");
+    for(;;);
+    // Handle error
+  }
+
+  if(local_state.display_changed){
+    Serial.println("Screen printed once");
+    display_font_size(1);
+    display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
+    display_clear();
+    display_set_cursor(0, 0);
+    display_println("DISPLAY ON!!!");
+    if(display_update() != DISPLAY_STATUS_OK){
+      Serial.println("Display update failed");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    if(system_set_display_changed(false) != STATE_OK){
+      Serial.println("Error writing state, screen data mode");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+  }
+  return STATE_OK;
+}
 
 // 01 - FSM handlers
 
@@ -149,6 +175,12 @@ void fsm_data_mode(const uint32_t now){
   if(gpio_slide_switch_on() == SWITCH_OFF){
     system_set_current_state(FSM_DIVE_MODE);
     return;
+  }
+
+  if(screen_data_mode() != STATE_OK){
+    Serial.println("data mode screen write failed");
+    for(;;);
+    // Handle error
   }
 }
 
