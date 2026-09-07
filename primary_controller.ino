@@ -72,7 +72,7 @@ void loop() {
       fsm_read_cells();
       break;
     case FSM_DATA_MODE:
-      fsm_data_mode();
+      fsm_data_mode(now);
       break;
     default:
       break;
@@ -127,7 +127,25 @@ void fsm_read_cells(void){
   }
 }
 
-void fsm_data_mode(void){
+void fsm_data_mode(const uint32_t now){
+  internal_state_t local_state = {};
+  bool cell_read_due = false;
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    Serial.println("Error getting local state in data mode");
+    for(;;);
+    // Handle error
+  }
+
+  if(!scheduler_read_cells(now, local_state.cell_read_time, &cell_read_due)){
+    Serial.println("Error checking cell read time data mode");
+    for(;;);
+    // Handle error
+  }
+  if(cell_read_due){
+    return;
+  }
+
   if(gpio_slide_switch_on() == SWITCH_OFF){
     system_set_current_state(FSM_DIVE_MODE);
     return;
