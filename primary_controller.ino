@@ -75,6 +75,7 @@ void loop() {
       result = fsm_data_mode(now);
       break;
     default:
+      result = STATE_INVALID_CONDITION;
       break;
   }
 
@@ -180,6 +181,7 @@ system_state_t fsm_read_cells(void){
       return STATE_FAILED_FUNCTION_CALL;
     }
   }
+  return STATE_OK;
 }
 
 system_state_t fsm_data_mode(const uint32_t now){
@@ -200,12 +202,12 @@ system_state_t fsm_data_mode(const uint32_t now){
   }
 
   if(gpio_slide_switch_on() == SWITCH_OFF){
-    if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
-      Serial.println("Error state transition data mode");
-      return STATE_FAILED_FUNCTION_CALL;
-    }
     if(screen_off() != STATE_OK){
       Serial.println("Error turning off screen in data mode");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
+      Serial.println("Error state transition data mode");
       return STATE_FAILED_FUNCTION_CALL;
     }
     return STATE_OK;
