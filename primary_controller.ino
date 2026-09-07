@@ -49,13 +49,13 @@ void loop() {
     // Handle error
   }
 
-  if(!scheduler_led_flash(now, loop_state.main_led_flash_time, loop_state.main_led_on)){
+  if(scheduler_led_flash(now, loop_state.main_led_flash_time, loop_state.main_led_on) != STATE_OK){
     Serial.println("LED flash failure");
     for(;;);
     // Handle error
   }
 
-  if(!scheduler_adc_health_check(now, loop_state.adc_function_check_time)){
+  if(scheduler_adc_health_check(now, loop_state.adc_function_check_time) != STATE_OK){
     Serial.println("ADC health check scheduler failed");
     for(;;);
     // Handle error
@@ -103,7 +103,7 @@ void fsm_dive_mode(const uint32_t now){
     // Handle error
   }
 
-  if(!scheduler_read_cells(now, local_state.cell_read_time, &cell_read_due)){
+  if(scheduler_read_cells(now, local_state.cell_read_time, &cell_read_due) != STATE_OK){
     Serial.println("Error running read cells scheduler");
     for(;;);
     // Handle error
@@ -137,7 +137,7 @@ void fsm_data_mode(const uint32_t now){
     // Handle error
   }
 
-  if(!scheduler_read_cells(now, local_state.cell_read_time, &cell_read_due)){
+  if(scheduler_read_cells(now, local_state.cell_read_time, &cell_read_due) != STATE_OK){
     Serial.println("Error checking cell read time data mode");
     for(;;);
     // Handle error
@@ -155,7 +155,7 @@ void fsm_data_mode(const uint32_t now){
 
 // 02 - Scheduler functions
 
-bool scheduler_adc_health_check(const uint32_t now, const uint32_t elapsed_time){
+system_t scheduler_adc_health_check(const uint32_t now, const uint32_t elapsed_time){
   if(has_timer_elapsed(now, elapsed_time, FREQUENCY_ADC_CHECK_MS)){   // Check if ADC is online once a second
     hal_adc_status_t current_adc_status = adc_health_check();
     bool adc_online = (current_adc_status == ADC_STATUS_OK);
@@ -168,30 +168,30 @@ bool scheduler_adc_health_check(const uint32_t now, const uint32_t elapsed_time)
 
     if(system_set_adc_online(adc_online) != STATE_OK){
       Serial.println("Error writing adc_onine");
-      return false;
+      return STATE_FAILED_FUNCTION_CALL;
     }
     system_set_adc_function_check_time(now);
   }
-  return true;
+  return STATE_OK;
 }
 
-bool scheduler_led_flash(const uint32_t now, const uint32_t elapsed_time, const bool system_led_state){
+system_t scheduler_led_flash(const uint32_t now, const uint32_t elapsed_time, const bool system_led_state){
   if(has_timer_elapsed(now, elapsed_time, FREQUENCY_MAIN_LED_FLASH)){ // Turn main led on & off every 1s
     bool led_on = !system_led_state;
     digitalWrite(LED_BUILTIN, led_on);
     system_set_main_led_on(led_on);
     if(system_set_main_led_timer(now) != STATE_OK){
       Serial.println("Error writing main led timer");
-      return false;
+      return STATE_FAILED_FUNCTION_CALL;
       // Handle error
     }
   }
-  return true;
+  return STATE_OK;
 }
 
-bool scheduler_read_cells(const uint32_t now, const uint32_t elapsed_time, bool * const cell_read_due){
+system_t scheduler_read_cells(const uint32_t now, const uint32_t elapsed_time, bool * const cell_read_due){
   if(cell_read_due == NULL){
-    return false;
+    return STATE_INVALID_PARAMETER;
   }
   if(has_timer_elapsed(now, elapsed_time, FREQUENCY_CELL_READ_MS)){
     system_set_current_state(FSM_READ_CELLS);
@@ -200,5 +200,8 @@ bool scheduler_read_cells(const uint32_t now, const uint32_t elapsed_time, bool 
   } else {
     *cell_read_due = false;
   }
-  return true;
+  return STATE_OK;
 }
+
+// 03 - Display
+
