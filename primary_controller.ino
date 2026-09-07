@@ -41,6 +41,7 @@ void setup() {
 void loop() {
   uint32_t now = millis();
   internal_state_t loop_state = {};
+  system_state_t result = STATE_UNINITIALISED;
 
   if(system_get_loop_state(&loop_state) != STATE_OK){   // Create local copy of system state
     Serial.println("Error getting loop state");
@@ -62,19 +63,25 @@ void loop() {
 
   switch (loop_state.current_state) {
     case FSM_START_UP:
-      fsm_start_up();
+      result = fsm_start_up();
       break;
     case FSM_DIVE_MODE:
-      fsm_dive_mode(now);
+      result = fsm_dive_mode(now);
       break;
     case FSM_READ_CELLS:
-      fsm_read_cells();
+      result = fsm_read_cells();
       break;
     case FSM_DATA_MODE:
-      fsm_data_mode(now);
+      result = fsm_data_mode(now);
       break;
     default:
       break;
+  }
+
+  if(result != STATE_OK){
+    Serial.println("Loop failed");
+    for(;;);
+    // Handle error
   }
 }
 
@@ -123,100 +130,93 @@ system_state_t screen_off(void){
 
 // 01 - FSM handlers
 
-void fsm_start_up(void){
+system_state_t fsm_start_up(void){
   // NOTE fsm_start_up is WIP and will be expanded later
   // Currently just a placeholder for future development
   if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
     Serial.println("Error at start up transition");
-    for(;;);
-    // Handle error
+    return STATE_FAILED_FUNCTION_CALL;
   }
+  return STATE_OK;
 }
 
-void fsm_dive_mode(const uint32_t now){
+system_state_t fsm_dive_mode(const uint32_t now){
   internal_state_t local_state = {};
   bool cell_read_due = false;
 
   if(system_get_loop_state(&local_state) != STATE_OK){    // Create local copy of system state
     Serial.println("Error reading state, fsm_dive_mode");
-    for(;;);
-    // Handle error
+    return STATE_FAILED_FUNCTION_CALL;
   }
 
   if(scheduler_read_cells(now, local_state.cell_read_time, &cell_read_due) != STATE_OK){
     Serial.println("Error running read cells scheduler");
-    for(;;);
-    // Handle error
+    return STATE_FAILED_FUNCTION_CALL;
   }
   if(cell_read_due){
-    return;
+    return STATE_OK;
   }
 
   if(gpio_slide_switch_on() == SWITCH_ON){
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
       Serial.println("Error changing state in dive mode");
-      for(;;);
-      // Handle error
+      return STATE_FAILED_FUNCTION_CALL;
     }
-    return;
+    return STATE_OK;
   }
+  return STATE_OK;
 }
 
-void fsm_read_cells(void){
+system_state_t fsm_read_cells(void){
   Serial.println("fsm_read_cells");
   if(gpio_slide_switch_on() == SWITCH_ON){
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
       Serial.println("Error changing state fsm_read_cells 1");
-      for(;;);
-      // Handle error
+      return STATE_FAILED_FUNCTION_CALL;
     }
   } else {
     if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
       Serial.println("Error changing state fsm_read_cells 2");
-      for(;;);
-      // Handle error
+      return STATE_FAILED_FUNCTION_CALL;
     }
   }
 }
 
-void fsm_data_mode(const uint32_t now){
+system_state_t fsm_data_mode(const uint32_t now){
   internal_state_t local_state = {};
   bool cell_read_due = false;
 
   if(system_get_loop_state(&local_state) != STATE_OK){
     Serial.println("Error getting local state in data mode");
-    for(;;);
-    // Handle error
+    return STATE_FAILED_FUNCTION_CALL;
   }
 
   if(scheduler_read_cells(now, local_state.cell_read_time, &cell_read_due) != STATE_OK){
     Serial.println("Error checking cell read time data mode");
-    for(;;);
-    // Handle error
+    return STATE_FAILED_FUNCTION_CALL;
   }
   if(cell_read_due){
-    return;
+    return STATE_OK;
   }
 
   if(gpio_slide_switch_on() == SWITCH_OFF){
     if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
       Serial.println("Error state transition data mode");
-      for(;;);
-      // Handle error
+      return STATE_FAILED_FUNCTION_CALL;
     }
     if(screen_off() != STATE_OK){
       Serial.println("Error turning off screen in data mode");
-      for(;;);
-      // Handle error
+      return STATE_FAILED_FUNCTION_CALL;
     }
-    return;
+    return STATE_OK;
   }
 
   if(screen_data_mode() != STATE_OK){
     Serial.println("data mode screen write failed");
-    for(;;);
-    // Handle error
+    return STATE_FAILED_FUNCTION_CALL;
   }
+
+  return STATE_OK;
 }
 
 
