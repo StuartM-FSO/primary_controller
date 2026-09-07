@@ -100,8 +100,12 @@ system_t system_set_display_changed(const bool changed){
 
 // Non-critical setters & getters
 
-void system_set_main_led_on(bool led_on){
+system_t system_set_main_led_on(bool led_on){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
   state.main_led_on = led_on;
+  return STATE_OK;
 }
 
 
