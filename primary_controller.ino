@@ -99,11 +99,13 @@ void fsm_dive_mode(const uint32_t now){
   if(system_get_loop_state(&local_state) != STATE_OK){    // Create local copy of system state
     Serial.println("Error reading state, fsm_dive_mode");
     for(;;);
+    // Handle error
   }
 
-  if(has_timer_elapsed(now, local_state.cell_read_time, FREQUENCY_CELL_READ_MS)){
-    system_set_current_state(FSM_READ_CELLS);
-    system_set_cell_read_time(now);
+  if(!scheduler_read_cells(now, local_state.cell_read_time)){
+    Serial.println("Error running read cells scheduler");
+    for(;;);
+    // Handle error
   }
 }
 
@@ -149,6 +151,14 @@ bool scheduler_led_flash(const uint32_t now, const uint32_t elapsed_time, const 
       return false;
       // Handle error
     }
+  }
+  return true;
+}
+
+bool scheduler_read_cells(const uint32_t now, const uint32_t elapsed_time){
+  if(has_timer_elapsed(now, elapsed_time, FREQUENCY_CELL_READ_MS)){
+    system_set_current_state(FSM_READ_CELLS);
+    system_set_cell_read_time(now);
   }
   return true;
 }
