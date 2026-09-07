@@ -120,7 +120,11 @@ void fsm_dive_mode(const uint32_t now){
 
 void fsm_read_cells(void){
   Serial.println("fsm_read_cells");
-  system_set_current_state(FSM_DIVE_MODE);
+  if(gpio_slide_switch_on() == SWITCH_ON){
+    system_set_current_state(FSM_DATA_MODE);
+  } else {
+    system_set_current_state(FSM_DIVE_MODE);
+  }
 }
 
 void fsm_data_mode(void){
