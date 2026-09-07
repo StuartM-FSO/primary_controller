@@ -65,6 +65,9 @@ void loop() {
     case FSM_READ_CELLS:
       fsm_read_cells();
       break;
+    case FSM_DATA_MODE:
+      fsm_data_mode();
+      break;
     default:
       break;
   }
@@ -101,6 +104,10 @@ void fsm_dive_mode(const uint32_t now){
 void fsm_read_cells(void){
   Serial.println("fsm_read_cells");
   system_set_current_state(FSM_DIVE_MODE);
+}
+
+void fsm_data_mode(void){
+  
 }
 
 
