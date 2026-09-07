@@ -10,7 +10,7 @@ typedef enum{
   STATE_INVALID_PARAMETER,
   STATE_UNINITIALISED,
   STATE_FAILED_FUNCTION_CALL
-} system_t;
+} system_state_t;
 
 typedef enum{
   FSM_ZERO_COUNT = 0,   // Do not use or add states before
@@ -34,15 +34,15 @@ typedef struct{
   uint32_t adc_function_check_time;
 } internal_state_t;
 
-system_t system_init(void);
+system_state_t system_init(void);
 
-system_t system_get_loop_state(internal_state_t *loop_state);
-system_t system_set_cell_read_time(const uint32_t now);
-system_t system_set_main_led_timer(const uint32_t now);
-system_t system_set_adc_function_check_time(const uint32_t now);
-system_t system_set_adc_online(const bool adc_online);
-system_t system_set_current_state(const fsm_state_t current_state);
-system_t system_set_display_changed(const bool changed);
-system_t system_set_main_led_on(bool led_on);
+system_state_t system_get_loop_state(internal_state_t *loop_state);
+system_state_t system_set_cell_read_time(const uint32_t now);
+system_state_t system_set_main_led_timer(const uint32_t now);
+system_state_t system_set_adc_function_check_time(const uint32_t now);
+system_state_t system_set_adc_online(const bool adc_online);
+system_state_t system_set_current_state(const fsm_state_t current_state);
+system_state_t system_set_display_changed(const bool changed);
+system_state_t system_set_main_led_on(bool led_on);
 
 #endif

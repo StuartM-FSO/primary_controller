@@ -8,7 +8,7 @@ static internal_state_t state = {};
 
 // Public API
 
-system_t system_init(void){
+system_state_t system_init(void){
   if(state.initialised){
     return STATE_OK;
   }
@@ -26,7 +26,7 @@ system_t system_init(void){
 
 // Setters & getters
 
-system_t system_get_loop_state(internal_state_t *loop_state){
+system_state_t system_get_loop_state(internal_state_t *loop_state){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
@@ -42,7 +42,7 @@ system_t system_get_loop_state(internal_state_t *loop_state){
   return STATE_OK;
 }
 
-system_t system_set_cell_read_time(const uint32_t now){
+system_state_t system_set_cell_read_time(const uint32_t now){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
@@ -51,7 +51,7 @@ system_t system_set_cell_read_time(const uint32_t now){
   return STATE_OK;
 }
 
-system_t system_set_main_led_timer(const uint32_t now){
+system_state_t system_set_main_led_timer(const uint32_t now){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
@@ -60,7 +60,7 @@ system_t system_set_main_led_timer(const uint32_t now){
   return STATE_OK;
 }
 
-system_t system_set_adc_function_check_time(const uint32_t now){
+system_state_t system_set_adc_function_check_time(const uint32_t now){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
@@ -69,7 +69,7 @@ system_t system_set_adc_function_check_time(const uint32_t now){
   return STATE_OK;
 }
 
-system_t system_set_current_state(const fsm_state_t current_state){
+system_state_t system_set_current_state(const fsm_state_t current_state){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
@@ -80,7 +80,7 @@ system_t system_set_current_state(const fsm_state_t current_state){
   return STATE_OK;
 }
 
-system_t system_set_adc_online(const bool adc_online){
+system_state_t system_set_adc_online(const bool adc_online){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
@@ -89,7 +89,7 @@ system_t system_set_adc_online(const bool adc_online){
   return STATE_OK;
 }
 
-system_t system_set_display_changed(const bool changed){
+system_state_t system_set_display_changed(const bool changed){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
@@ -98,9 +98,7 @@ system_t system_set_display_changed(const bool changed){
   return STATE_OK;
 }
 
-// Non-critical setters & getters
-
-system_t system_set_main_led_on(bool led_on){
+system_state_t system_set_main_led_on(bool led_on){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }

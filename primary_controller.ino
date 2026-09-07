@@ -80,7 +80,7 @@ void loop() {
 
 // 00 - WIP
 
-system_t screen_data_mode(void){
+system_state_t screen_data_mode(void){
   internal_state_t local_state = {};
 
   if(system_get_loop_state(&local_state) != STATE_OK){
@@ -108,7 +108,7 @@ system_t screen_data_mode(void){
   return STATE_OK;
 }
 
-system_t screen_off(void){
+system_state_t screen_off(void){
   display_clear();
   if(display_update() != DISPLAY_STATUS_OK){
     Serial.println("Error turning screen off");
@@ -124,6 +124,8 @@ system_t screen_off(void){
 // 01 - FSM handlers
 
 void fsm_start_up(void){
+  // NOTE fsm_start_up is WIP and will be expanded later
+  // Currently just a placeholder for future development
   if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
     Serial.println("Error at start up transition");
     for(;;);
@@ -220,7 +222,7 @@ void fsm_data_mode(const uint32_t now){
 
 // 02 - Scheduler functions
 
-system_t scheduler_adc_health_check(const uint32_t now, const uint32_t last_time){
+system_state_t scheduler_adc_health_check(const uint32_t now, const uint32_t last_time){
   if(has_timer_elapsed(now, last_time, FREQUENCY_ADC_CHECK_MS)){   // Check if ADC is online once a second
     hal_adc_status_t current_adc_status = adc_health_check();
     bool adc_online = (current_adc_status == ADC_STATUS_OK);
@@ -243,7 +245,7 @@ system_t scheduler_adc_health_check(const uint32_t now, const uint32_t last_time
   return STATE_OK;
 }
 
-system_t scheduler_led_flash(const uint32_t now, const uint32_t last_time, const bool system_led_state){
+system_state_t scheduler_led_flash(const uint32_t now, const uint32_t last_time, const bool system_led_state){
   if(has_timer_elapsed(now, last_time, FREQUENCY_MAIN_LED_FLASH)){ // Turn main led on & off every 1s
     bool led_on = !system_led_state;
     if(system_set_main_led_on(led_on) != STATE_OK){
@@ -261,7 +263,7 @@ system_t scheduler_led_flash(const uint32_t now, const uint32_t last_time, const
   return STATE_OK;
 }
 
-system_t scheduler_read_cells(const uint32_t now, const uint32_t last_time, bool * const cell_read_due){
+system_state_t scheduler_read_cells(const uint32_t now, const uint32_t last_time, bool * const cell_read_due){
   if(cell_read_due == NULL){
     return STATE_INVALID_PARAMETER;
   }
