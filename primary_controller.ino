@@ -124,8 +124,10 @@ void fsm_read_cells(void){
 }
 
 void fsm_data_mode(void){
-  Serial.println("Paused at data mode");
-  for(;;);
+  if(gpio_slide_switch_on() == SWITCH_OFF){
+    system_set_current_state(FSM_DIVE_MODE);
+    return;
+  }
 }
 
 
