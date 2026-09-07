@@ -2,6 +2,8 @@
 #include "system_state.h"
 #include "time_helpers.h"
 #include "adc_hal.h"
+#include "display_hal.h"
+#include "gpio_hal.h"
 
 constexpr uint32_t FREQUENCY_CELL_READ_MS = 1000U;
 constexpr uint32_t FREQUENCY_MAIN_LED_FLASH = 1000U;
@@ -23,6 +25,10 @@ void setup() {
   if(system_init() != STATE_OK){
     proceed = false;
   } else if (adc_init() != ADC_STATUS_OK){
+    proceed = false;
+  } else if(display_init() != DISPLAY_STATUS_OK){
+    proceed = false;
+  } else if(gpio_init() != GPIO_STATUS_OK){
     proceed = false;
   }
 
@@ -107,7 +113,7 @@ void fsm_read_cells(void){
 }
 
 void fsm_data_mode(void){
-  
+
 }
 
 
