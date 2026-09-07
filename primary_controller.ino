@@ -109,6 +109,19 @@ system_t screen_data_mode(void){
   return STATE_OK;
 }
 
+system_t screen_off(void){
+  display_clear();
+  if(display_update() != DISPLAY_STATUS_OK){
+    Serial.println("Error turning screen off");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  if(system_set_display_changed(true) != STATE_OK){
+    Serial.println("Error writing state in screen off");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  return STATE_OK;
+}
+
 // 01 - FSM handlers
 
 void fsm_start_up(void){
@@ -174,6 +187,11 @@ void fsm_data_mode(const uint32_t now){
 
   if(gpio_slide_switch_on() == SWITCH_OFF){
     system_set_current_state(FSM_DIVE_MODE);
+    if(screen_off() != STATE_OK){
+      Serial.println("Error turning off screen in data mode");
+      for(;;);
+      // Handle error
+    }
     return;
   }
 
