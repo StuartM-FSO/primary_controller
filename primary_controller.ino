@@ -246,7 +246,6 @@ system_t scheduler_adc_health_check(const uint32_t now, const uint32_t last_time
 system_t scheduler_led_flash(const uint32_t now, const uint32_t last_time, const bool system_led_state){
   if(has_timer_elapsed(now, last_time, FREQUENCY_MAIN_LED_FLASH)){ // Turn main led on & off every 1s
     bool led_on = !system_led_state;
-    digitalWrite(LED_BUILTIN, led_on);
     if(system_set_main_led_on(led_on) != STATE_OK){
       Serial.println("Error set main led on, scheduler led flash");
       for(;;);
@@ -257,6 +256,7 @@ system_t scheduler_led_flash(const uint32_t now, const uint32_t last_time, const
       return STATE_FAILED_FUNCTION_CALL;
       // Handle error
     }
+    digitalWrite(LED_BUILTIN, led_on);
   }
   return STATE_OK;
 }
