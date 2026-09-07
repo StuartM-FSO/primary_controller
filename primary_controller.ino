@@ -95,6 +95,7 @@ void fsm_start_up(void){
 
 void fsm_dive_mode(const uint32_t now){
   internal_state_t local_state = {};
+  bool cell_read_due = false;
 
   if(system_get_loop_state(&local_state) != STATE_OK){    // Create local copy of system state
     Serial.println("Error reading state, fsm_dive_mode");
@@ -102,10 +103,18 @@ void fsm_dive_mode(const uint32_t now){
     // Handle error
   }
 
-  if(!scheduler_read_cells(now, local_state.cell_read_time)){
+  if(!scheduler_read_cells(now, local_state.cell_read_time, &cell_read_due)){
     Serial.println("Error running read cells scheduler");
     for(;;);
     // Handle error
+  }
+  if(cell_read_due){
+    return;
+  }
+
+  if(gpio_slide_switch_on() == SWITCH_ON){
+    system_set_current_state(FSM_DATA_MODE);
+    return;
   }
 }
 
@@ -115,7 +124,8 @@ void fsm_read_cells(void){
 }
 
 void fsm_data_mode(void){
-
+  Serial.println("Paused at data mode");
+  for(;;);
 }
 
 
@@ -155,10 +165,16 @@ bool scheduler_led_flash(const uint32_t now, const uint32_t elapsed_time, const 
   return true;
 }
 
-bool scheduler_read_cells(const uint32_t now, const uint32_t elapsed_time){
+bool scheduler_read_cells(const uint32_t now, const uint32_t elapsed_time, bool * const cell_read_due){
+  if(cell_read_due == NULL){
+    return false;
+  }
   if(has_timer_elapsed(now, elapsed_time, FREQUENCY_CELL_READ_MS)){
     system_set_current_state(FSM_READ_CELLS);
     system_set_cell_read_time(now);
+    *cell_read_due = true;
+  } else {
+    *cell_read_due = false;
   }
   return true;
 }
