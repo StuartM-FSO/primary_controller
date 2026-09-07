@@ -237,8 +237,7 @@ system_t scheduler_adc_health_check(const uint32_t now, const uint32_t last_time
     }
     if(system_set_adc_function_check_time(now) != STATE_OK){
       Serial.println("Error setting adc check time, scheduler_adc_health_check");
-      for(;;);
-      // Handle error
+      return STATE_FAILED_FUNCTION_CALL;
     }
   }
   return STATE_OK;
