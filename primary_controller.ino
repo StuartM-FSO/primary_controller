@@ -96,7 +96,7 @@ void fsm_start_up(void){
 void fsm_dive_mode(const uint32_t now){
   internal_state_t local_state = {};
 
-  if(system_get_loop_state(&local_state) != STATE_OK){
+  if(system_get_loop_state(&local_state) != STATE_OK){    // Create local copy of system state
     Serial.println("Error reading state, fsm_dive_mode");
     for(;;);
   }
