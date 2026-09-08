@@ -272,14 +272,22 @@ system_state_t fsm_calibration_wait(const uint32_t now){
 
   if(button == SWITCH_ON){
     uint32_t elapsed = now - local_state.calibration_button_pushed;
-    screen_hold_button(elapsed);
+    if(screen_hold_button(elapsed) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
     if(timed_out){
-      system_set_current_state(FSM_CALIBRATION_WRITE);
+      if(system_set_current_state(FSM_CALIBRATION_WRITE) != STATE_OK){
+        return STATE_FAILED_FUNCTION_CALL;
+      }
     }
     return STATE_OK;
   } else {
-    system_set_current_state(FSM_DATA_MODE);
-    system_set_display_changed(true);
+    if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    if(system_set_display_changed(true) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
     return STATE_OK;
   }
   return STATE_OK;
