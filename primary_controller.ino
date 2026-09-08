@@ -75,8 +75,11 @@ void loop() {
     case FSM_DATA_MODE:
       result = fsm_data_mode(now);
       break;
-    case FSM_CALIBRATION_MODE:
-      result = fsm_calibration_mode(now);
+    case FSM_CALIBRATION_WAIT:
+      result = fsm_calibration_wait(now);
+      break;
+    case FSM_CALIBRATION_WRITE:
+      result = fsm_calibration_write();
       break;
     default:
       result = STATE_INVALID_CONDITION;
@@ -227,7 +230,7 @@ system_state_t fsm_data_mode(const uint32_t now){
       Serial.println("Error writing cal buttom timer");
       return STATE_FAILED_FUNCTION_CALL;
     }
-    if(system_set_current_state(FSM_CALIBRATION_MODE) != STATE_OK){
+    if(system_set_current_state(FSM_CALIBRATION_WAIT) != STATE_OK){
       Serial.println("Error switching to cal mode, fsm_data_mode");
       return STATE_FAILED_FUNCTION_CALL;
     }
@@ -237,7 +240,7 @@ system_state_t fsm_data_mode(const uint32_t now){
   return STATE_OK;
 }
 
-system_state_t fsm_calibration_mode(const uint32_t now){
+system_state_t fsm_calibration_wait(const uint32_t now){
   switchstate_t calibration_button = gpio_momentary_pushed();
   switchstate_t slide_switch = gpio_slide_switch_on();
   bool calibration_timer_elapsed = false;
@@ -256,12 +259,48 @@ system_state_t fsm_calibration_mode(const uint32_t now){
       return STATE_FAILED_FUNCTION_CALL;
     }
     Serial.println("Return to dive mode without write");
+    if(screen_off() != STATE_OK){
+      Serial.println("Error switching off screen, fsm_calibration_wait");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    if(system_set_display_changed(true) != STATE_OK){
+      Serial.println("Error writing screen changed, fsm_calibration_wait");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
     return STATE_OK;
   }
 
+  if(calibration_button == SWITCH_ON){
+    return STATE_OK;
+  } else if(calibration_button == SWITCH_OFF){
+    if(calibration_timer_elapsed){
+      if(system_set_current_state(FSM_CALIBRATION_WRITE) != STATE_OK){
+        Serial.println("Error changing state, fsm_calibration_wait 1");
+        return STATE_FAILED_FUNCTION_CALL;
+      }
+      Serial.println("Jump to calibration write");
+      return STATE_OK;
+    } else {
+      Serial.println("Calibration wait cancelled");
+      if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
+        Serial.println("Error changing state, fsm_calibration_wait 2");
+        return STATE_FAILED_FUNCTION_CALL;
+      }
+      Serial.println("Exit without writing cal");
+      return STATE_OK;
+    }
+  } else {
+    Serial.println("Unknown error reading button, fsm_calibration_wait");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
   
 
   return STATE_OK;
+}
+
+system_state_t fsm_calibration_write(void){
+  Serial.println("CALIBRATION WRITE HOLD");
+  for(;;);
 }
 
 
