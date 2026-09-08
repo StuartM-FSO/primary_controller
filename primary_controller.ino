@@ -154,6 +154,18 @@ system_state_t screen_hold_button(const uint32_t elapsed){
   return STATE_OK;
 }
 
+system_state_t screen_release_button(void){
+  display_clear();
+  display_set_cursor(0U, 0U);
+  display_println("RELEASE BUTTON");
+  display_println("TO WRITE");
+  if(display_update() != DISPLAY_STATUS_OK){
+    Serial.println("Error button warning");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  return STATE_OK;
+}
+
 // 01 - FSM handlers
 
 system_state_t fsm_start_up(void){
@@ -305,8 +317,37 @@ system_state_t fsm_calibration_wait(const uint32_t now){
 }
 
 system_state_t fsm_calibration_write(void){
-  Serial.println("CALIBRATION WRITE HOLD");
-  for(;;);
+  switchstate_t button = gpio_momentary_pushed();
+  switchstate_t slider = gpio_slide_switch_on();
+
+  if(slider != SWITCH_ON){
+    if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    if(screen_off() != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    return STATE_OK;
+  }
+
+  if(button == SWITCH_ON){
+    if(screen_release_button() != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    return STATE_OK;
+  } else if(button == SWITCH_OFF){
+    Serial.println("Writing calibration");
+    // Calibration write goes here
+    if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    if(system_set_display_changed(true) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    return STATE_OK;
+  } else {
+    return STATE_INVALID_CONDITION;
+  }
 }
 
 
