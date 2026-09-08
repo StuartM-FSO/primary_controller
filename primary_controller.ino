@@ -5,9 +5,10 @@
 #include "display_hal.h"
 #include "gpio_hal.h"
 
-constexpr uint32_t FREQUENCY_CELL_READ_MS = 1000U;
-constexpr uint32_t FREQUENCY_MAIN_LED_FLASH = 1000U;
-constexpr uint32_t FREQUENCY_ADC_CHECK_MS = 1000U;
+constexpr uint32_t INTERVAL_CELL_READ_MS = 1000U;
+constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
+constexpr uint32_t INTERVAL_ADC_CHECK_MS = 1000U;
+constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 3000U;
 
 void setup() {
   Serial.begin(115200);
@@ -75,7 +76,7 @@ void loop() {
       result = fsm_data_mode(now);
       break;
     case FSM_CALIBRATION_MODE:
-      result = fsm_calibration_mode();
+      result = fsm_calibration_mode(now);
       break;
     default:
       result = STATE_INVALID_CONDITION;
@@ -222,19 +223,32 @@ system_state_t fsm_data_mode(const uint32_t now){
 
   if(gpio_momentary_pushed() == SWITCH_ON){
     Serial.println("Switching to cal mode");
+    if(system_set_calibration_button_pushed(now) != STATE_OK){
+      Serial.println("Error writing cal buttom timer");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
     if(system_set_current_state(FSM_CALIBRATION_MODE) != STATE_OK){
       Serial.println("Error switching to cal mode, fsm_data_mode");
       return STATE_FAILED_FUNCTION_CALL;
     }
     return STATE_OK;
   }
-  
+
   return STATE_OK;
 }
 
-system_state_t fsm_calibration_mode(void){
+system_state_t fsm_calibration_mode(const uint32_t now){
   switchstate_t calibration_button = gpio_momentary_pushed();
   switchstate_t slide_switch = gpio_slide_switch_on();
+  bool calibration_timer_elapsed = false;
+  internal_state_t local_state = {};
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    Serial.println("Failed to get state, fsm_calibration_mode");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  calibration_timer_elapsed = has_timer_elapsed(now, local_state.calibration_button_pushed, INTERVAL_CAL_WAIT_BEFORE_WRITE_MS);
 
   if(slide_switch == SWITCH_OFF){
     if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
@@ -245,14 +259,7 @@ system_state_t fsm_calibration_mode(void){
     return STATE_OK;
   }
 
-  if(calibration_button == SWITCH_OFF){
-    if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
-      Serial.println("Error switching to data mode, fsm_calibration_mode");
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-    Serial.println("Return to data mode without write");
-    return STATE_OK;
-  }
+  
 
   return STATE_OK;
 }
@@ -261,7 +268,7 @@ system_state_t fsm_calibration_mode(void){
 // 02 - Scheduler functions
 
 system_state_t scheduler_adc_health_check(const uint32_t now, const uint32_t last_time){
-  if(has_timer_elapsed(now, last_time, FREQUENCY_ADC_CHECK_MS)){   // Check if ADC is online once a second
+  if(has_timer_elapsed(now, last_time, INTERVAL_ADC_CHECK_MS)){   // Check if ADC is online once a second
     hal_adc_status_t current_adc_status = adc_health_check();
     bool adc_online = (current_adc_status == ADC_STATUS_OK);
 
@@ -284,7 +291,7 @@ system_state_t scheduler_adc_health_check(const uint32_t now, const uint32_t las
 }
 
 system_state_t scheduler_led_flash(const uint32_t now, const uint32_t last_time, const bool system_led_state){
-  if(has_timer_elapsed(now, last_time, FREQUENCY_MAIN_LED_FLASH)){ // Turn main led on & off every 1s
+  if(has_timer_elapsed(now, last_time, INTERVAL_MAIN_LED_FLASH)){ // Turn main led on & off every 1s
     bool led_on = !system_led_state;
     if(system_set_main_led_on(led_on) != STATE_OK){
       Serial.println("Error set main led on, scheduler led flash");
@@ -303,7 +310,7 @@ system_state_t scheduler_read_cells(const uint32_t now, const uint32_t last_time
   if(cell_read_due == NULL){
     return STATE_INVALID_PARAMETER;
   }
-  if(has_timer_elapsed(now, last_time, FREQUENCY_CELL_READ_MS)){
+  if(has_timer_elapsed(now, last_time, INTERVAL_CELL_READ_MS)){
     if(system_set_current_state(FSM_READ_CELLS) != STATE_OK){
       Serial.println("Error setting state, scheduler read cells");
       return STATE_FAILED_FUNCTION_CALL;

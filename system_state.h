@@ -34,6 +34,7 @@ typedef struct{
   uint32_t cell_read_time;
   uint32_t main_led_flash_time;
   uint32_t adc_function_check_time;
+  uint32_t calibration_button_pushed;
 } internal_state_t;
 
 system_state_t system_init(void);
@@ -46,5 +47,6 @@ system_state_t system_set_adc_online(const bool adc_online);
 system_state_t system_set_current_state(const fsm_state_t current_state);
 system_state_t system_set_display_changed(const bool changed);
 system_state_t system_set_main_led_on(bool led_on);
+system_state_t system_set_calibration_button_pushed(const uint32_t now);
 
 #endif

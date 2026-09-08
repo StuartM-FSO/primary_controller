@@ -17,6 +17,7 @@ system_state_t system_init(void){
   state.main_led_flash_time = 0U;
   state.cell_read_time = 0U;
   state.adc_function_check_time = 0U;
+  state.calibration_button_pushed = 0U;
   state.main_led_on = false;
   state.adc_online = false;
   state.display_changed = true;
@@ -39,6 +40,7 @@ system_state_t system_get_loop_state(internal_state_t *loop_state){
   loop_state->adc_online = state.adc_online;
   loop_state->initialised = state.initialised;
   loop_state->display_changed = state.display_changed;
+  loop_state->calibration_button_pushed = state.calibration_button_pushed;
   return STATE_OK;
 }
 
@@ -103,6 +105,14 @@ system_state_t system_set_main_led_on(bool led_on){
     return STATE_UNINITIALISED;
   }
   state.main_led_on = led_on;
+  return STATE_OK;
+}
+
+system_state_t system_set_calibration_button_pushed(const uint32_t now){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+  state.calibration_button_pushed = now;
   return STATE_OK;
 }
 
