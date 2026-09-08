@@ -4,11 +4,12 @@
 #include "adc_hal.h"
 #include "display_hal.h"
 #include "gpio_hal.h"
+#include "format_for_print.h"
 
 constexpr uint32_t INTERVAL_CELL_READ_MS = 1000U;
 constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
 constexpr uint32_t INTERVAL_ADC_CHECK_MS = 1000U;
-constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 3000U;
+constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 7000U;
 
 void setup() {
   Serial.begin(115200);
@@ -135,17 +136,19 @@ system_state_t screen_off(void){
   return STATE_OK;
 }
 
-system_state_t screen_release_button_warning(void){
+system_state_t screen_hold_button(const uint32_t elapsed){
+  uint16_t count = (uint16_t)((INTERVAL_CAL_WAIT_BEFORE_WRITE_MS + ONE_SECOND_MS - elapsed) / ONE_SECOND_MS);
+  char buffer[FORMATTING_INTEGER_STR_LEN];
+
+  format_integer_for_display(count, buffer);
+
   display_clear();
   display_set_cursor(0U, 0U);
-  display_println("RELEASE BUTTON");
+  display_println("HOLD BUTTON");
   display_println("TO CALIBRATE");
+  display_print(buffer);
   if(display_update() != DISPLAY_STATUS_OK){
     Serial.println("Error button warning");
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  if(system_set_display_changed(false) != STATE_OK){
-    Serial.println("Error writing state, button warning");
     return STATE_FAILED_FUNCTION_CALL;
   }
   return STATE_OK;
@@ -257,11 +260,34 @@ system_state_t fsm_data_mode(const uint32_t now){
 }
 
 system_state_t fsm_calibration_wait(const uint32_t now){
-  
+  switchstate_t button = gpio_momentary_pushed();
+  internal_state_t local_state = {};
+  bool timed_out = false;
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  timed_out = has_timer_elapsed(now, local_state.calibration_button_pushed, INTERVAL_CAL_WAIT_BEFORE_WRITE_MS);
+
+  if(button == SWITCH_ON){
+    uint32_t elapsed = now - local_state.calibration_button_pushed;
+    screen_hold_button(elapsed);
+    if(timed_out){
+      system_set_current_state(FSM_CALIBRATION_WRITE);
+    }
+    return STATE_OK;
+  } else {
+    system_set_current_state(FSM_DATA_MODE);
+    system_set_display_changed(true);
+    return STATE_OK;
+  }
+  return STATE_OK;
 }
 
 system_state_t fsm_calibration_write(void){
-  
+  Serial.println("CALIBRATION WRITE HOLD");
+  for(;;);
 }
 
 
