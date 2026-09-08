@@ -96,75 +96,7 @@ void loop() {
 
 // 00 - WIP
 
-system_state_t screen_data_mode(void){
-  internal_state_t local_state = {};
 
-  if(system_get_loop_state(&local_state) != STATE_OK){
-    Serial.println("screen_data_mode error getting state");
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-
-  if(local_state.display_changed){
-    Serial.println("Screen printed once");
-    display_font_size(1);
-    display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
-    display_clear();
-    display_set_cursor(0, 0);
-    display_println("DISPLAY ON!!!");
-    if(display_update() != DISPLAY_STATUS_OK){
-      Serial.println("Display update failed");
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-    if(system_set_display_changed(false) != STATE_OK){
-      Serial.println("Error writing state, screen data mode");
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-  }
-  return STATE_OK;
-}
-
-system_state_t screen_off(void){
-  display_clear();
-  if(display_update() != DISPLAY_STATUS_OK){
-    Serial.println("Error turning screen off");
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  if(system_set_display_changed(true) != STATE_OK){
-    Serial.println("Error writing state in screen off");
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  return STATE_OK;
-}
-
-system_state_t screen_hold_button(const uint32_t elapsed){
-  uint16_t count = (uint16_t)((INTERVAL_CAL_WAIT_BEFORE_WRITE_MS + ONE_SECOND_MS - elapsed) / ONE_SECOND_MS);
-  char buffer[FORMATTING_INTEGER_STR_LEN];
-
-  format_integer_for_display(count, buffer);
-
-  display_clear();
-  display_set_cursor(0U, 0U);
-  display_println("HOLD BUTTON");
-  display_println("TO CALIBRATE");
-  display_print(buffer);
-  if(display_update() != DISPLAY_STATUS_OK){
-    Serial.println("Error button warning");
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  return STATE_OK;
-}
-
-system_state_t screen_release_button(void){
-  display_clear();
-  display_set_cursor(0U, 0U);
-  display_println("RELEASE BUTTON");
-  display_println("TO WRITE");
-  if(display_update() != DISPLAY_STATUS_OK){
-    Serial.println("Error button warning");
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  return STATE_OK;
-}
 
 // 01 - FSM handlers
 
@@ -418,3 +350,72 @@ system_state_t scheduler_read_cells(const uint32_t now, const uint32_t last_time
 
 // 03 - Display
 
+system_state_t screen_data_mode(void){
+  internal_state_t local_state = {};
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    Serial.println("screen_data_mode error getting state");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  if(local_state.display_changed){
+    Serial.println("Screen printed once");
+    display_font_size(1);
+    display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
+    display_clear();
+    display_set_cursor(0, 0);
+    display_println("DISPLAY ON!!!");
+    if(display_update() != DISPLAY_STATUS_OK){
+      Serial.println("Display update failed");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    if(system_set_display_changed(false) != STATE_OK){
+      Serial.println("Error writing state, screen data mode");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+  }
+  return STATE_OK;
+}
+
+system_state_t screen_off(void){
+  display_clear();
+  if(display_update() != DISPLAY_STATUS_OK){
+    Serial.println("Error turning screen off");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  if(system_set_display_changed(true) != STATE_OK){
+    Serial.println("Error writing state in screen off");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  return STATE_OK;
+}
+
+system_state_t screen_hold_button(const uint32_t elapsed){
+  uint16_t count = (uint16_t)((INTERVAL_CAL_WAIT_BEFORE_WRITE_MS + ONE_SECOND_MS - elapsed) / ONE_SECOND_MS);
+  char buffer[FORMATTING_INTEGER_STR_LEN];
+
+  format_integer_for_display(count, buffer);
+
+  display_clear();
+  display_set_cursor(0U, 0U);
+  display_println("HOLD BUTTON");
+  display_println("TO CALIBRATE");
+  display_print(buffer);
+  if(display_update() != DISPLAY_STATUS_OK){
+    Serial.println("Error button warning");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  return STATE_OK;
+}
+
+system_state_t screen_release_button(void){
+  display_clear();
+  display_set_cursor(0U, 0U);
+  display_println("RELEASE BUTTON");
+  display_println("TO WRITE");
+  if(display_update() != DISPLAY_STATUS_OK){
+    Serial.println("Error button warning");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  return STATE_OK;
+}
