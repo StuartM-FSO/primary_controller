@@ -281,7 +281,7 @@ system_state_t fsm_calibration_wait(const uint32_t now){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
-  if(slider != SWITCH_ON){
+  if(slider == SWITCH_OFF){
     if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
@@ -289,6 +289,10 @@ system_state_t fsm_calibration_wait(const uint32_t now){
       return STATE_FAILED_FUNCTION_CALL;
     }
     return STATE_OK;
+  } else if(slider == SWITCH_ON){
+    // Do nothing
+  } else {
+    return STATE_INVALID_CONDITION;
   }
 
   timed_out = has_timer_elapsed(now, local_state.calibration_button_pushed, INTERVAL_CAL_WAIT_BEFORE_WRITE_MS);
