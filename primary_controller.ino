@@ -93,8 +93,7 @@ system_state_t screen_data_mode(void){
 
   if(system_get_loop_state(&local_state) != STATE_OK){
     Serial.println("screen_data_mode error getting state");
-    for(;;);
-    // Handle error
+    return STATE_FAILED_FUNCTION_CALL;
   }
 
   if(local_state.display_changed){
@@ -252,13 +251,11 @@ system_state_t scheduler_led_flash(const uint32_t now, const uint32_t last_time,
     bool led_on = !system_led_state;
     if(system_set_main_led_on(led_on) != STATE_OK){
       Serial.println("Error set main led on, scheduler led flash");
-      for(;;);
-      // Handle error
+      return STATE_FAILED_FUNCTION_CALL;
     }
     if(system_set_main_led_timer(now) != STATE_OK){
       Serial.println("Error writing main led timer");
       return STATE_FAILED_FUNCTION_CALL;
-      // Handle error
     }
     digitalWrite(LED_BUILTIN, led_on);
   }
@@ -272,13 +269,11 @@ system_state_t scheduler_read_cells(const uint32_t now, const uint32_t last_time
   if(has_timer_elapsed(now, last_time, FREQUENCY_CELL_READ_MS)){
     if(system_set_current_state(FSM_READ_CELLS) != STATE_OK){
       Serial.println("Error setting state, scheduler read cells");
-      for(;;);
-      // Handle error
+      return STATE_FAILED_FUNCTION_CALL;
     }
     if(system_set_cell_read_time(now) != STATE_OK){
       Serial.println("Error set cell read time, scheduler read cells");
-      for(;;);
-      // Handle error
+      return STATE_FAILED_FUNCTION_CALL;
     }
     *cell_read_due = true;
   } else {
