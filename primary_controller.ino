@@ -261,11 +261,22 @@ system_state_t fsm_data_mode(const uint32_t now){
 
 system_state_t fsm_calibration_wait(const uint32_t now){
   switchstate_t button = gpio_momentary_pushed();
+  switchstate_t slider = gpio_slide_switch_on();
   internal_state_t local_state = {};
   bool timed_out = false;
 
   if(system_get_loop_state(&local_state) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  if(slider != SWITCH_ON){
+    if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    if(screen_off() != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    return STATE_OK;
   }
 
   timed_out = has_timer_elapsed(now, local_state.calibration_button_pushed, INTERVAL_CAL_WAIT_BEFORE_WRITE_MS);
