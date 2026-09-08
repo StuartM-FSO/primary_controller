@@ -19,6 +19,7 @@ typedef enum{
   FSM_DIVE_MODE,
   FSM_READ_CELLS,
   FSM_DATA_MODE,
+  FSM_CALIBRATION_MODE,
   FSM_END_COUNT         // Do not use or add states beyond
 } fsm_state_t;
 

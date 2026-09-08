@@ -74,6 +74,9 @@ void loop() {
     case FSM_DATA_MODE:
       result = fsm_data_mode(now);
       break;
+    case FSM_CALIBRATION_MODE:
+      result = fsm_calibration_mode();
+      break;
     default:
       result = STATE_INVALID_CONDITION;
       break;
@@ -215,6 +218,40 @@ system_state_t fsm_data_mode(const uint32_t now){
   if(screen_data_mode() != STATE_OK){
     Serial.println("data mode screen write failed");
     return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  if(gpio_momentary_pushed() == SWITCH_ON){
+    Serial.println("Switching to cal mode");
+    if(system_set_current_state(FSM_CALIBRATION_MODE) != STATE_OK){
+      Serial.println("Error switching to cal mode, fsm_data_mode");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    return STATE_OK;
+  }
+  
+  return STATE_OK;
+}
+
+system_state_t fsm_calibration_mode(void){
+  switchstate_t calibration_button = gpio_momentary_pushed();
+  switchstate_t slide_switch = gpio_slide_switch_on();
+
+  if(slide_switch == SWITCH_OFF){
+    if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
+      Serial.println("Error writing state change, fsm_calibration_mode");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    Serial.println("Return to dive mode without write");
+    return STATE_OK;
+  }
+
+  if(calibration_button == SWITCH_OFF){
+    if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
+      Serial.println("Error switching to data mode, fsm_calibration_mode");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    Serial.println("Return to data mode without write");
+    return STATE_OK;
   }
 
   return STATE_OK;
