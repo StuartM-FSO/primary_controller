@@ -1,3 +1,4 @@
+#include <cstddef>
 #include "api/Common.h"
 #include <sys/_stdint.h>
 #include <stdint.h>
@@ -31,7 +32,7 @@ typedef struct{
   bool initialised;
   //uint32_t last_function_check_time;
   Adafruit_ADS1115 device;
-  cell_raw[THREE_CELLS];
+  uint16_t cell_raw[THREE_CELLS];
 } internal_state_t;
 
 static internal_state_t state = {};
@@ -123,6 +124,20 @@ uint16_t adc_convert_raw_to_mV(const uint16_t raw_reading){
 
     // Convert µV → mV
     return (uint16_t)(microvolts / MICROVOLTS_PER_MILLIVOLT);
+}
+
+hal_adc_status_t adc_get_stored_cell(uint16_t * const reading, const uint8_t channel){
+  if(!state.initialised){
+    return ADC_STATUS_NOT_INITIALIZED;
+  }
+  if(reading == NULL){
+    return ADC_STATUS_INVALID_PARAMETER;
+  }
+  if(channel >= THREE_CELLS){
+    return ADC_STATUS_INVALID_PARAMETER;
+  }
+  *reading = state.cell_raw[channel];
+  return ADC_STATUS_OK;
 }
 
 
