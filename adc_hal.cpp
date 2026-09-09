@@ -31,6 +31,7 @@ typedef struct{
   bool initialised;
   //uint32_t last_function_check_time;
   Adafruit_ADS1115 device;
+  cell_raw[THREE_CELLS];
 } internal_state_t;
 
 static internal_state_t state = {};
@@ -107,6 +108,7 @@ hal_adc_status_t adc_get_filtered_reading(uint16_t * const filtered_reading, con
         return ADC_STATUS_INVALID_PARAMETER;
     }
     *filtered_reading = sample[MEDIAN_SAMPLE_NUMBER];
+    state.cell_raw[channel] = sample[MEDIAN_SAMPLE_NUMBER];
     return ADC_STATUS_OK;
 }
 

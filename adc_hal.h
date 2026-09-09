@@ -1,3 +1,4 @@
+#include <sys/_stdint.h>
 #ifndef ADC_HAL_H
 #define ADC_HAL_H
 
