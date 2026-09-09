@@ -10,6 +10,7 @@ constexpr uint32_t INTERVAL_CELL_READ_MS = 1000U;
 constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
 constexpr uint32_t INTERVAL_ADC_CHECK_MS = 1000U;
 constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 7000U;
+constexpr uint8_t THREE_CELLS = 3U;
 
 void setup() {
   Serial.begin(115200);
@@ -138,17 +139,32 @@ system_state_t fsm_dive_mode(const uint32_t now){
 }
 
 system_state_t fsm_read_cells(void){
+  switchstate_t slider = gpio_slide_switch_on();
+  uint16_t filtered_reading = 0U;
+  uint16_t reading_mv = 0U;
+
   Serial.println("fsm_read_cells");
-  if(gpio_slide_switch_on() == SWITCH_ON){
+
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    adc_get_filtered_reading(&filtered_reading, channel);
+    reading_mv = adc_convert_raw_to_mV(filtered_reading);
+    Serial.print(reading_mv);
+    Serial.print("mV ");
+  }
+  Serial.println();
+
+  if(slider == SWITCH_ON){
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
       Serial.println("Error changing state fsm_read_cells 1");
       return STATE_FAILED_FUNCTION_CALL;
     }
-  } else {
+  } else if(slider == SWITCH_OFF){
     if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
       Serial.println("Error changing state fsm_read_cells 2");
       return STATE_FAILED_FUNCTION_CALL;
     }
+  } else {
+    return STATE_INVALID_CONDITION;
   }
   return STATE_OK;
 }
