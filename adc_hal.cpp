@@ -1,3 +1,5 @@
+#include "api/Common.h"
+#include <sys/_stdint.h>
 #include <stdint.h>
 // NOTES
 //  1 - HAL assumes that Wire.h has been included in main sketch and Wire.begin() has been called
@@ -7,13 +9,25 @@
 
 static constexpr uint8_t TRANSMISSION_OK = 0U;
 static constexpr uint8_t ADC_POWER_READ_PIN = D2;
-static const uint16_t ADC_POWER_MAX_RAW = 1023U;
-static const uint16_t ADC_POWER_MAX_MV = 5000U;
-static const uint16_t ADC_MINIMUM_POWER_READING_MV = 2500; 
+static constexpr uint8_t THREE_CELLS = 3U;
+static constexpr uint32_t MAX_INTERVAL_FUNCTION_CHECK_MS = 250;
+static constexpr uint32_t MAX_WAIT_TIME_MS = 50;
+static constexpr uint8_t ADC_ADDRESS = 0x48;
+static constexpr uint8_t MAX_SAMPLES = 3U;
+static constexpr uint8_t MEDIAN_SAMPLE_NUMBER = MAX_SAMPLES / 2;
+
+// Configured for Xiao RA4M1 (3.3V and 10bit ADC)
+static constexpr uint16_t ADC_POWER_MAX_RAW = 1023U;
+static constexpr uint16_t ADC_POWER_MAX_MV = 3300U;
+
+// Minimum acceptable mV being supllied to ADS1115 module
+static constexpr uint16_t ADC_MINIMUM_POWER_READING_MV = 2500;
 
 
 typedef struct{
   bool initialised;
+  //uint32_t last_function_check_time;
+  Adafruit_ADS1115 device;
 } internal_state_t;
 
 static internal_state_t state = {};
@@ -23,6 +37,8 @@ static bool is_powered(void);
 static bool is_connected(void);
 static bool map_non_arduino(const uint16_t base_value, uint16_t *scaled_value,
     const uint16_t in_min, const uint16_t in_max, const uint16_t out_min, const uint16_t out_max);
+static hal_adc_status_t read_sensor(uint16_t * const reading, const uint8_t channel);
+static bool sort_values(uint16_t arr[3]);
 
 
 
@@ -34,11 +50,21 @@ hal_adc_status_t adc_init(void){
     return ADC_STATUS_OK;
   }
 
+  if(state.device.begin() == false){
+      return ADC_STATUS_INIT_FAILED;
+  }
+  state.device.setGain(GAIN_SIXTEEN);
+  state.device.setDataRate(RATE_ADS1115_128SPS);
+
+  //state.last_function_check_time = millis();
   state.initialised = true;
   return ADC_STATUS_OK;
 }
 
 hal_adc_status_t adc_health_check(void){
+  if(!state.initialised){
+    return ADC_STATUS_NOT_INITIALIZED;
+  }
   if(is_powered() && is_connected()){
     return ADC_STATUS_OK;
   } else {
@@ -46,35 +72,29 @@ hal_adc_status_t adc_health_check(void){
   }
 }
 
-hal_adc_status_t adc_get_raw_reading(uint16_t * const raw_reading, const uint8_t channel){
-    const uint8_t MAX_SAMPLES = 3;                            // System will never have anything other than 3 sensors connected to operate
-    const uint8_t MEDIAN_SAMPLE_NUMBER = MAX_SAMPLES / 2;     // so the median will always be [1]
+hal_adc_status_t adc_get_filtered_reading(uint16_t * const filtered_reading, const uint8_t channel){
     uint16_t reading = 0;
     uint16_t sample[MAX_SAMPLES];
     
-    if(!current_state.adc_initialised){
-        return ADC_STATUS_NOT_INITIALIZED;
+    if(!state.initialised){
+      return ADC_STATUS_NOT_INITIALIZED;
     }
-    if(raw_reading == NULL){
+    if(filtered_reading == NULL){
         return ADC_STATUS_INVALID_PARAMETER;
     }
     if(channel >= THREE_CELLS){
         return ADC_STATUS_INVALID_PARAMETER;
     }
-    if(!power_check_multiple()){
-        current_state.adc_initialised = false;
-        return ADC_STATUS_HW_ERROR;
-    }
-    if((millis() - current_state.last_function_check_time) > MAX_INTERVAL_FUNCTION_CHECK_MS){
-        current_state.last_function_check_time = millis();
+    /* if((millis() - state.last_function_check_time) > MAX_INTERVAL_FUNCTION_CHECK_MS){
+        state.last_function_check_time = millis();
         if(!connected_check_multiple()){
             current_state.adc_initialised = false;
             return ADC_STATUS_HW_ERROR;
         }
-    }
+    } */
     for(uint8_t sample_number = 0U; sample_number < MAX_SAMPLES; sample_number++){
         if(read_sensor(&reading, channel) != ADC_STATUS_OK){
-            current_state.adc_initialised = false;
+            state.initialised = false;
             return ADC_STATUS_HW_ERROR;
         }
         // Add reading validity check here, if passes then write to array
@@ -83,7 +103,7 @@ hal_adc_status_t adc_get_raw_reading(uint16_t * const raw_reading, const uint8_t
     if(sort_values(sample) != true){
         return ADC_STATUS_INVALID_PARAMETER;
     }
-    *raw_reading = sample[MEDIAN_SAMPLE_NUMBER];
+    *filtered_reading = sample[MEDIAN_SAMPLE_NUMBER];
     return ADC_STATUS_OK;
 }
 
@@ -104,7 +124,7 @@ static bool is_powered(void){
 static bool is_connected(void){
   uint8_t result = 99U;
 
-  Wire.beginTransmission(0x48);
+  Wire.beginTransmission(ADC_ADDRESS);
   result = Wire.endTransmission();
   return (result == TRANSMISSION_OK);
 }
@@ -133,5 +153,53 @@ static bool map_non_arduino(const uint16_t base_value, uint16_t * const scaled_v
     denominator = (uint32_t)(in_max - in_min);
     result = numerator / denominator + out_min;
     *scaled_value = (uint16_t)result;
+    return true;
+}
+
+static hal_adc_status_t read_sensor(uint16_t * const reading, const uint8_t channel){
+    bool wait_timeout_ok;
+    uint32_t start_time_ms = 0;
+    uint32_t elapsed_time_ms = 0;
+    int32_t unfiltered_reading = 0;
+
+    if(reading == NULL){
+        return ADC_STATUS_INVALID_PARAMETER;
+    }
+    if(channel >= THREE_CELLS){
+        return ADC_STATUS_INVALID_PARAMETER;
+    }
+    state.device.startADCReading(MUX_BY_CHANNEL[channel], false);
+    wait_timeout_ok = true;
+    start_time_ms = millis();
+    while(!state.device.conversionComplete()){
+        elapsed_time_ms = millis() - start_time_ms;
+        if(elapsed_time_ms >= MAX_WAIT_TIME_MS){
+            wait_timeout_ok = false;
+            break;
+        }
+        delay(1); // Reduces CPU cycles. Accepting the penalty of using delay() in this situation.
+    }
+    if(wait_timeout_ok){
+        unfiltered_reading = state.device.getLastConversionResults();
+        *reading = (unfiltered_reading < 0) ? 0U : (uint16_t)unfiltered_reading;
+        return ADC_STATUS_OK;
+    } else {
+        return ADC_STATUS_HW_ERROR;
+    }
+}
+
+static bool sort_values(uint16_t arr[3]) {
+    uint16_t temp;
+
+    if (arr[0] > arr[1]) {
+        temp = arr[0]; arr[0] = arr[1]; arr[1] = temp;
+    }
+    if (arr[0] > arr[2]) {
+        temp = arr[0]; arr[0] = arr[2]; arr[2] = temp;
+    }
+    if (arr[1] > arr[2]) {
+        temp = arr[1]; arr[1] = arr[2]; arr[2] = temp;
+    }
+
     return true;
 }
