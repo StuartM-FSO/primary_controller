@@ -46,6 +46,47 @@ hal_adc_status_t adc_health_check(void){
   }
 }
 
+hal_adc_status_t adc_get_raw_reading(uint16_t * const raw_reading, const uint8_t channel){
+    const uint8_t MAX_SAMPLES = 3;                            // System will never have anything other than 3 sensors connected to operate
+    const uint8_t MEDIAN_SAMPLE_NUMBER = MAX_SAMPLES / 2;     // so the median will always be [1]
+    uint16_t reading = 0;
+    uint16_t sample[MAX_SAMPLES];
+    
+    if(!current_state.adc_initialised){
+        return ADC_STATUS_NOT_INITIALIZED;
+    }
+    if(raw_reading == NULL){
+        return ADC_STATUS_INVALID_PARAMETER;
+    }
+    if(channel >= THREE_CELLS){
+        return ADC_STATUS_INVALID_PARAMETER;
+    }
+    if(!power_check_multiple()){
+        current_state.adc_initialised = false;
+        return ADC_STATUS_HW_ERROR;
+    }
+    if((millis() - current_state.last_function_check_time) > MAX_INTERVAL_FUNCTION_CHECK_MS){
+        current_state.last_function_check_time = millis();
+        if(!connected_check_multiple()){
+            current_state.adc_initialised = false;
+            return ADC_STATUS_HW_ERROR;
+        }
+    }
+    for(uint8_t sample_number = 0U; sample_number < MAX_SAMPLES; sample_number++){
+        if(read_sensor(&reading, channel) != ADC_STATUS_OK){
+            current_state.adc_initialised = false;
+            return ADC_STATUS_HW_ERROR;
+        }
+        // Add reading validity check here, if passes then write to array
+        sample[sample_number] = reading;
+    }
+    if(sort_values(sample) != true){
+        return ADC_STATUS_INVALID_PARAMETER;
+    }
+    *raw_reading = sample[MEDIAN_SAMPLE_NUMBER];
+    return ADC_STATUS_OK;
+}
+
 
 // Private
 
