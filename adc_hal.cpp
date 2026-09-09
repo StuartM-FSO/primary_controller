@@ -15,6 +15,9 @@ static constexpr uint32_t MAX_WAIT_TIME_MS = 50;
 static constexpr uint8_t ADC_ADDRESS = 0x48;
 static constexpr uint8_t MAX_SAMPLES = 3U;
 static constexpr uint8_t MEDIAN_SAMPLE_NUMBER = MAX_SAMPLES / 2;
+static constexpr int32_t ADS1115_FULL_SCALE_MV = 256;
+static constexpr int32_t ADS1115_RESOLUTION = 32768;
+static constexpr int32_t MICROVOLTS_PER_MILLIVOLT = 1000;
 
 // Configured for Xiao RA4M1 (3.3V and 10bit ADC)
 static constexpr uint16_t ADC_POWER_MAX_RAW = 1023U;
@@ -105,6 +108,19 @@ hal_adc_status_t adc_get_filtered_reading(uint16_t * const filtered_reading, con
     }
     *filtered_reading = sample[MEDIAN_SAMPLE_NUMBER];
     return ADC_STATUS_OK;
+}
+
+uint16_t adc_convert_raw_to_mV(const uint16_t raw_reading){
+    uint64_t microvolts = 0;
+
+    if (raw_reading < 0){
+        return 0;
+    }
+    microvolts = ((uint64_t)raw_reading * (ADS1115_FULL_SCALE_MV * MICROVOLTS_PER_MILLIVOLT)) / ADS1115_RESOLUTION;
+    //microvolts = ((int32_t)raw_reading * (ADS1115_FULL_SCALE_MV * MICROVOLTS_PER_MILLIVOLT)) / ADS1115_RESOLUTION;
+
+    // Convert µV → mV
+    return (uint16_t)(microvolts / MICROVOLTS_PER_MILLIVOLT);
 }
 
 

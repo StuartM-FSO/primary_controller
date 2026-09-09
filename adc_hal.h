@@ -18,6 +18,8 @@ hal_adc_status_t adc_init(void);
 hal_adc_status_t adc_health_check(void);
 hal_adc_status_t adc_get_filtered_reading(uint16_t * const raw_reading, const uint8_t channel);
 
+uint16_t adc_convert_raw_to_mV(const uint16_t raw_reading);
+
 
 
 #endif
