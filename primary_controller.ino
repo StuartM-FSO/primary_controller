@@ -12,6 +12,10 @@ constexpr uint32_t INTERVAL_ADC_CHECK_MS = 1000U;
 constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 7000U;
 constexpr uint8_t THREE_CELLS = 3U;
 
+// To be moved to display protocol library
+constexpr uint8_t SCREEN_LINE_PPO2 = 0U;
+constexpr uint8_t SCREEN_LINE_MV = 8U;
+
 void setup() {
   Serial.begin(115200);
   while(!Serial){
@@ -382,18 +386,22 @@ system_state_t screen_data_mode(void){
   }
 
   if(local_state.display_changed){
-    Serial.println("Screen printed once");
+    uint16_t reading_mv[THREE_CELLS] = {};
+    
+    if(adc_get_last_good_cell_read(reading_mv) != ADC_STATUS_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+
     display_font_size(1);
     display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
     display_clear();
     display_set_cursor(0, 0);
     display_println("DISPLAY ON!!!");
-    if(display_update() != DISPLAY_STATUS_OK){
-      Serial.println("Display update failed");
+    if(screen_print_mv() != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
-    if(system_set_display_changed(false) != STATE_OK){
-      Serial.println("Error writing state, screen data mode");
+    if(display_update() != DISPLAY_STATUS_OK){
+      Serial.println("Display update failed");
       return STATE_FAILED_FUNCTION_CALL;
     }
   }
@@ -439,6 +447,25 @@ system_state_t screen_release_button(void){
   if(display_update() != DISPLAY_STATUS_OK){
     Serial.println("Error button warning");
     return STATE_FAILED_FUNCTION_CALL;
+  }
+  return STATE_OK;
+}
+
+system_state_t screen_print_mv(void){
+  char buffer[FORMATTING_INTEGER_STR_LEN];
+  uint16_t reading_raw[THREE_CELLS];
+
+  if(adc_get_last_good_cell_read(reading_raw) != ADC_STATUS_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  display_set_cursor(0U, SCREEN_LINE_MV);
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    uint16_t reading_mv = adc_convert_raw_to_mV(reading_raw[channel]);
+
+    format_integer_for_display(reading_mv, buffer);
+    display_print(buffer);
+    display_print("mV ");
   }
   return STATE_OK;
 }
