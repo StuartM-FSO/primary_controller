@@ -328,7 +328,7 @@ system_state_t scheduler_adc_health_check(const uint32_t now, const uint32_t las
     }
 
     if(system_set_adc_online(adc_online) != STATE_OK){
-      Serial.println("Error writing adc_onine");
+      Serial.println("Error writing adc_online");
       return STATE_FAILED_FUNCTION_CALL;
     }
     if(system_set_adc_function_check_time(now) != STATE_OK){
