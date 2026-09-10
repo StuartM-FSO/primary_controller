@@ -333,7 +333,7 @@ system_state_t fsm_calibration_wait(const uint32_t now){
       }
     }
     return STATE_OK;
-  } else {
+  } else if(button == SWITCH_OFF){
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
@@ -341,8 +341,9 @@ system_state_t fsm_calibration_wait(const uint32_t now){
       return STATE_FAILED_FUNCTION_CALL;
     }
     return STATE_OK;
+  } else {
+    return STATE_INVALID_CONDITION;
   }
-  return STATE_OK;
 }
 
 system_state_t fsm_calibration_write(void){
