@@ -440,12 +440,12 @@ system_state_t scheduler_read_cells(const uint32_t now, const uint32_t last_time
     return STATE_INVALID_PARAMETER;
   }
   if(has_timer_elapsed(now, last_time, INTERVAL_CELL_READ_MS)){
-    if(system_set_current_state(FSM_READ_CELLS) != STATE_OK){
-      Serial.println("Error setting state, scheduler read cells");
-      return STATE_FAILED_FUNCTION_CALL;
-    }
     if(system_set_cell_read_time(now) != STATE_OK){
       Serial.println("Error set cell read time, scheduler read cells");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    if(system_set_current_state(FSM_READ_CELLS) != STATE_OK){
+      Serial.println("Error setting state, scheduler read cells");
       return STATE_FAILED_FUNCTION_CALL;
     }
     *cell_read_due = true;
