@@ -380,30 +380,21 @@ system_state_t scheduler_read_cells(const uint32_t now, const uint32_t last_time
 system_state_t screen_data_mode(void){
   internal_state_t local_state = {};
 
-  if(system_get_loop_state(&local_state) != STATE_OK){
-    Serial.println("screen_data_mode error getting state");
+  display_font_size(1);
+  display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
+  display_clear();
+
+  if(screen_print_ppo2() != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
-
-  if(local_state.display_changed){
-    uint16_t reading_mv[THREE_CELLS] = {};
-    
-    if(adc_get_last_good_cell_read(reading_mv) != ADC_STATUS_OK){
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-
-    display_font_size(1);
-    display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
-    display_clear();
-    display_set_cursor(0, 0);
-    display_println("DISPLAY ON!!!");
-    if(screen_print_mv() != STATE_OK){
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-    if(display_update() != DISPLAY_STATUS_OK){
-      Serial.println("Display update failed");
-      return STATE_FAILED_FUNCTION_CALL;
-    }
+  
+  if(screen_print_mv() != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  
+  if(display_update() != DISPLAY_STATUS_OK){
+    Serial.println("Display update failed");
+    return STATE_FAILED_FUNCTION_CALL;
   }
   return STATE_OK;
 }
@@ -467,5 +458,11 @@ system_state_t screen_print_mv(void){
     display_print(buffer);
     display_print("mV ");
   }
+  return STATE_OK;
+}
+
+system_state_t screen_print_ppo2(void){
+  display_set_cursor(0, SCREEN_LINE_PPO2);
+  display_println("DISPLAY ON!!!");
   return STATE_OK;
 }
