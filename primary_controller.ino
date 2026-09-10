@@ -38,7 +38,9 @@ void setup() {
     proceed = false;
   } else if(gpio_init() != GPIO_STATUS_OK){
     proceed = false;
-  }
+  } else if(eeprom_init() != MEM_OK){
+    proceed = false;
+  } else {}
 
   if(!proceed){
     Serial.println("Start up failed");
