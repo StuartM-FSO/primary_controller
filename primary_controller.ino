@@ -5,6 +5,7 @@
 #include "display_hal.h"
 #include "gpio_hal.h"
 #include "format_for_print.h"
+#include "eeprom_hal.h"
 
 constexpr uint32_t INTERVAL_CELL_READ_MS = 1000U;
 constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
