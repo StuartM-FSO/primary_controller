@@ -130,6 +130,20 @@ system_state_t system_set_reference_reading(uint16_t * const reference_reading){
   return STATE_OK;
 }
 
+system_state_t system_get_reference_reading(uint16_t * const reference_reading){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+  if(reference_reading == NULL){
+    return STATE_INVALID_PARAMETER;
+  }
+
+  for(uint8_t channel = 0U; channel < 3U; channel++){
+    reference_reading[channel] = state.reference_reading[channel];
+  }
+  return STATE_OK;
+}
+
 
 
 // Private

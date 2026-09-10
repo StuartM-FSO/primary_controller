@@ -11,7 +11,8 @@ typedef enum{
   STATE_INVALID_PARAMETER,
   STATE_UNINITIALISED,
   STATE_FAILED_FUNCTION_CALL,
-  STATE_INVALID_CONDITION
+  STATE_INVALID_CONDITION,
+  STATE_OVERFLOW
 } system_state_t;
 
 typedef enum{
@@ -53,5 +54,6 @@ system_state_t system_set_display_changed(const bool changed);
 system_state_t system_set_main_led_on(bool led_on);
 system_state_t system_set_calibration_button_pushed(const uint32_t now);
 system_state_t system_set_reference_reading(uint16_t * const reference_reading);
+system_state_t system_get_reference_reading(uint16_t * const reference_reading);
 
 #endif

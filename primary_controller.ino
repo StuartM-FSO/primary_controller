@@ -12,6 +12,7 @@ constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
 constexpr uint32_t INTERVAL_ADC_CHECK_MS = 1000U;
 constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 7000U;
 constexpr uint8_t THREE_CELLS = 3U;
+constexpr uint16_t CALIBRATION_PPO2x1000 = 970U;
 
 // To be moved to display protocol library
 constexpr uint8_t SCREEN_LINE_PPO2 = 0U;
@@ -118,6 +119,44 @@ system_state_t assign_cell_reference_readings(void){
   return STATE_OK;
 }
 
+system_state_t convert_raw_to_ppo2(const uint16_t raw, const uint8_t channel, uint16_t *const raw_converted_to_ppo2){
+  uint16_t reference_reading[THREE_CELLS] = {};
+  uint32_t ppo2 = 0U;
+  const uint32_t scale = CALIBRATION_PPO2x1000;
+  uint32_t temp = 0U;
+
+  if(raw_converted_to_ppo2 == NULL){
+    return STATE_INVALID_PARAMETER;
+  }
+
+  if(system_get_reference_reading(reference_reading) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  /* if(reference_value == 0U){
+    return STATE_REQUIRES_CALIBRATION;
+  } */
+  temp = ((uint32_t)raw) * scale;
+  ppo2 = temp / reference_reading[channel];
+  if (ppo2 > UINT16_MAX) return STATE_OVERFLOW;
+  *raw_converted_to_ppo2 = (uint16_t)ppo2;
+  return STATE_OK;
+}
+
+void debug_print_ppo2(void){
+  uint16_t current_read[THREE_CELLS] = {};
+
+  adc_get_last_good_cell_read(current_read);
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    uint16_t ppo2 = 0U;
+
+    convert_raw_to_ppo2(current_read[channel], channel, &ppo2);
+    Serial.print(ppo2);
+    Serial.print(" : ");
+  }
+  Serial.println();
+}
+
 // 01 - FSM handlers
 
 system_state_t fsm_start_up(void){
@@ -198,6 +237,7 @@ system_state_t fsm_read_cells(void){
   } else {
     return STATE_INVALID_CONDITION;
   }
+  debug_print_ppo2();
   return STATE_OK;
 }
 
@@ -303,8 +343,9 @@ system_state_t fsm_calibration_wait(const uint32_t now){
 system_state_t fsm_calibration_write(void){
   switchstate_t button = gpio_momentary_pushed();
   switchstate_t slider = gpio_slide_switch_on();
+  uint16_t reference_reading[THREE_CELLS] = {};
 
-  if(slider != SWITCH_ON){
+  if(slider == SWITCH_OFF){
     if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
@@ -312,6 +353,10 @@ system_state_t fsm_calibration_write(void){
       return STATE_FAILED_FUNCTION_CALL;
     }
     return STATE_OK;
+  } else if (slider == SWITCH_ON){
+    // Do nothing
+  } else {
+    return STATE_INVALID_CONDITION;
   }
 
   if(button == SWITCH_ON){
@@ -321,13 +366,25 @@ system_state_t fsm_calibration_write(void){
     return STATE_OK;
   } else if(button == SWITCH_OFF){
     Serial.println("Writing calibration");
-    // Calibration write goes here
+    
+    if(adc_get_last_good_cell_read(reference_reading) != ADC_STATUS_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+
+    if(eeprom_write_calibration(reference_reading) != MEM_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+
+    system_set_reference_reading(reference_reading);
+
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
+    
     if(system_set_display_changed(true) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
+    
     return STATE_OK;
   } else {
     return STATE_INVALID_CONDITION;
