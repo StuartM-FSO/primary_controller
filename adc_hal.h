@@ -12,13 +12,14 @@ typedef enum{
   ADC_STATUS_INVALID_CHANNEL,
   ADC_STATUS_HW_ERROR,
   ADC_STATUS_INVALID_PARAMETER,
+  ADC_STATUS_FAILED_READ,
   ADC_STATUS_NOT_POWERED
 } hal_adc_status_t;
 
 hal_adc_status_t adc_init(void);
 hal_adc_status_t adc_health_check(void);
-hal_adc_status_t adc_get_filtered_reading(uint16_t * const filtered_reading, const uint8_t channel);
-hal_adc_status_t adc_get_stored_cell(uint16_t * const reading, const uint8_t channel);
+hal_adc_status_t adc_get_last_good_cell_read(uint16_t * const reading);
+hal_adc_status_t adc_read_cells(void);
 
 uint16_t adc_convert_raw_to_mV(const uint16_t raw_reading);
 

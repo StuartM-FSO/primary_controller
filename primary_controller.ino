@@ -140,14 +140,21 @@ system_state_t fsm_dive_mode(const uint32_t now){
 
 system_state_t fsm_read_cells(void){
   switchstate_t slider = gpio_slide_switch_on();
-  uint16_t filtered_reading = 0U;
+  uint16_t filtered_reading[THREE_CELLS] = {};
   uint16_t reading_mv = 0U;
 
   Serial.println("fsm_read_cells");
 
+  if(adc_read_cells() != ADC_STATUS_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  if(adc_get_last_good_cell_read(filtered_reading) != ADC_STATUS_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
   for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
-    adc_get_filtered_reading(&filtered_reading, channel);
-    reading_mv = adc_convert_raw_to_mV(filtered_reading);
+    reading_mv = adc_convert_raw_to_mV(filtered_reading[channel]);
     Serial.print(reading_mv);
     Serial.print("mV ");
   }
