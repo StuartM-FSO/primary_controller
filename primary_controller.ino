@@ -129,9 +129,14 @@ system_state_t convert_raw_to_ppo2(const uint16_t raw, const uint8_t channel, ui
     return STATE_INVALID_PARAMETER;
   }
 
+  if(channel >= THREE_CELLS){
+    return STATE_INVALID_PARAMETER;
+  }
+
   if(system_get_reference_reading(reference_reading) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
+
 
   /* if(reference_value == 0U){
     return STATE_REQUIRES_CALIBRATION;
@@ -493,9 +498,14 @@ system_state_t screen_off(void){
 }
 
 system_state_t screen_hold_button(const uint32_t elapsed){
-  uint16_t count = (uint16_t)((INTERVAL_CAL_WAIT_BEFORE_WRITE_MS + ONE_SECOND_MS - elapsed) / ONE_SECOND_MS);
+  uint32_t remaining = 0U;
+  uint16_t count = 0U;
   char buffer[FORMATTING_INTEGER_STR_LEN];
 
+  if(elapsed < INTERVAL_CAL_WAIT_BEFORE_WRITE_MS){
+    remaining = INTERVAL_CAL_WAIT_BEFORE_WRITE_MS - elapsed;
+  }
+  count = (remaining + ONE_SECOND_MS - 1U) / ONE_SECOND_MS;
   format_integer_for_display(count, buffer);
 
   display_clear();
