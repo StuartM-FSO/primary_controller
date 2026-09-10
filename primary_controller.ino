@@ -104,13 +104,31 @@ void loop() {
 
 // 00 - WIP
 
+system_state_t assign_cell_reference_readings(void){
+  uint16_t temp_reference_readings[THREE_CELLS];
 
+  if(eeprom_read_calibration(temp_reference_readings) != MEM_OK){
+    Serial.println("Cal read failed");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  if(system_set_reference_reading(temp_reference_readings) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  Serial.println("Ref readings read from EEPROM");
+  return STATE_OK;
+}
 
 // 01 - FSM handlers
 
 system_state_t fsm_start_up(void){
   // NOTE fsm_start_up is WIP and will be expanded later
   // Currently just a placeholder for future development
+
+  if(assign_cell_reference_readings() != STATE_OK){
+    Serial.println("Failed at assign cell ref in start up");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
   if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
     Serial.println("Error at start up transition");
     return STATE_FAILED_FUNCTION_CALL;
