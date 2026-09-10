@@ -463,8 +463,6 @@ system_state_t scheduler_read_cells(const uint32_t now, const uint32_t last_time
 // 03 - Display
 
 system_state_t screen_data_mode(void){
-  internal_state_t local_state = {};
-
   display_font_size(1);
   display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
   display_clear();
