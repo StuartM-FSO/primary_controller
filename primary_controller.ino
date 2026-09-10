@@ -542,7 +542,22 @@ system_state_t screen_print_mv(void){
 }
 
 system_state_t screen_print_ppo2(void){
+  uint16_t current_read[THREE_CELLS] = {};
+  uint16_t current_ppo2 = 0U;
+  char buffer[FORMATTING_PPO2_STR_LEN] = {};
+
+  if(adc_get_last_good_cell_read(current_read) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
   display_set_cursor(0, SCREEN_LINE_PPO2);
-  display_println("DISPLAY ON!!!");
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    if(convert_raw_to_ppo2(current_read[channel], channel, &current_ppo2) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    format_ppo2_to_text(current_ppo2, buffer);
+    display_print(buffer);
+    display_print(" ");
+  }
   return STATE_OK;
 }
