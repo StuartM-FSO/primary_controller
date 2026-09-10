@@ -375,7 +375,9 @@ system_state_t fsm_calibration_write(void){
       return STATE_FAILED_FUNCTION_CALL;
     }
 
-    system_set_reference_reading(reference_reading);
+    if(system_set_reference_reading(reference_reading) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
 
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
