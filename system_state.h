@@ -12,7 +12,8 @@ typedef enum{
   STATE_UNINITIALISED,
   STATE_FAILED_FUNCTION_CALL,
   STATE_INVALID_CONDITION,
-  STATE_OVERFLOW
+  STATE_OVERFLOW,
+  STATE_READ_TOO_OLD
 } system_state_t;
 
 typedef enum{
@@ -38,6 +39,7 @@ typedef struct{
   uint32_t main_led_flash_time;
   uint32_t adc_function_check_time;
   uint32_t calibration_button_pushed;
+  uint32_t last_read_timestamp;
 
   uint16_t reference_reading[3U];
 } internal_state_t;
@@ -55,5 +57,6 @@ system_state_t system_set_main_led_on(bool led_on);
 system_state_t system_set_calibration_button_pushed(const uint32_t now);
 system_state_t system_set_reference_reading(uint16_t * const reference_reading);
 system_state_t system_get_reference_reading(uint16_t * const reference_reading);
+system_state_t system_set_last_read_timestamp(const uint16_t timestamp);
 
 #endif

@@ -19,6 +19,7 @@ system_state_t system_init(void){
   state.cell_read_time = 0U;
   state.adc_function_check_time = 0U;
   state.calibration_button_pushed = 0U;
+  state.last_read_timestamp = 0U;
   state.main_led_on = false;
   state.adc_online = false;
   state.display_changed = true;
@@ -42,6 +43,7 @@ system_state_t system_get_loop_state(internal_state_t *loop_state){
   loop_state->initialised = state.initialised;
   loop_state->display_changed = state.display_changed;
   loop_state->calibration_button_pushed = state.calibration_button_pushed;
+  loop_state->last_read_timestamp = state.last_read_timestamp;
   return STATE_OK;
 }
 
@@ -141,6 +143,15 @@ system_state_t system_get_reference_reading(uint16_t * const reference_reading){
   for(uint8_t channel = 0U; channel < 3U; channel++){
     reference_reading[channel] = state.reference_reading[channel];
   }
+  return STATE_OK;
+}
+
+system_state_t system_set_last_read_timestamp(const uint16_t timestamp){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+
+  state.last_read_timestamp = timestamp;
   return STATE_OK;
 }
 

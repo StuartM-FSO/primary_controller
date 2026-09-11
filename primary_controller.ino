@@ -11,6 +11,7 @@ constexpr uint32_t INTERVAL_CELL_READ_MS = 1000U;
 constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
 constexpr uint32_t INTERVAL_ADC_CHECK_MS = 1000U;
 constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 7000U;
+constexpr uint32_t MAXIMUM_AGE_OF_CELL_READ_MS = 5000U;
 constexpr uint8_t THREE_CELLS = 3U;
 constexpr uint16_t CALIBRATION_PPO2x1000 = 970U;
 
@@ -89,7 +90,7 @@ void loop() {
       result = fsm_calibration_wait(now);
       break;
     case FSM_CALIBRATION_WRITE:
-      result = fsm_calibration_write();
+      result = fsm_calibration_write(now);
       break;
     default:
       result = STATE_INVALID_CONDITION;
@@ -222,6 +223,10 @@ system_state_t fsm_read_cells(void){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
+  if(system_set_last_read_timestamp(millis()) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
   for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
     reading_mv = adc_convert_raw_to_mV(filtered_reading[channel]);
     Serial.print(reading_mv);
@@ -346,10 +351,11 @@ system_state_t fsm_calibration_wait(const uint32_t now){
   }
 }
 
-system_state_t fsm_calibration_write(void){
+system_state_t fsm_calibration_write(const uint32_t now){
   switchstate_t button = gpio_momentary_pushed();
   switchstate_t slider = gpio_slide_switch_on();
   uint16_t reference_reading[THREE_CELLS] = {};
+  internal_state_t local_state = {};
 
   if(slider == SWITCH_OFF){
     if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
@@ -376,6 +382,14 @@ system_state_t fsm_calibration_write(void){
     if(adc_get_last_good_cell_read(reference_reading) != ADC_STATUS_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
+
+    if(system_get_loop_state(&local_state) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    if(has_timer_elapsed(now, local_state.last_read_timestamp, MAXIMUM_AGE_OF_CELL_READ_MS)){
+      return STATE_READ_TOO_OLD;
+    }
+    
 
     if(eeprom_write_calibration(reference_reading) != MEM_OK){
       return STATE_FAILED_FUNCTION_CALL;
