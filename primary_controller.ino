@@ -10,7 +10,7 @@
 constexpr uint32_t INTERVAL_CELL_READ_MS = 1000U;
 constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
 constexpr uint32_t INTERVAL_ADC_CHECK_MS = 1000U;
-constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 7000U;
+constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 3000U;
 constexpr uint32_t MAXIMUM_AGE_OF_CELL_READ_MS = 5000U;
 constexpr uint8_t THREE_CELLS = 3U;
 constexpr uint16_t CALIBRATION_PPO2x1000 = 970U;
@@ -355,7 +355,6 @@ system_state_t fsm_calibration_write(const uint32_t now){
   switchstate_t button = gpio_momentary_pushed();
   switchstate_t slider = gpio_slide_switch_on();
   uint16_t reference_reading[THREE_CELLS] = {};
-  internal_state_t local_state = {};
 
   if(slider == SWITCH_OFF){
     if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
@@ -380,30 +379,27 @@ system_state_t fsm_calibration_write(const uint32_t now){
     Serial.println("Writing calibration");
     
     if(adc_get_last_good_cell_read(reference_reading) != ADC_STATUS_OK){
+      Serial.println("1");
       return STATE_FAILED_FUNCTION_CALL;
-    }
-
-    if(system_get_loop_state(&local_state) != STATE_OK){
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-    if(has_timer_elapsed(now, local_state.last_read_timestamp, MAXIMUM_AGE_OF_CELL_READ_MS)){
-      return STATE_READ_TOO_OLD;
-    }
-    
+    }    
 
     if(eeprom_write_calibration(reference_reading) != MEM_OK){
+      Serial.println("4");
       return STATE_FAILED_FUNCTION_CALL;
     }
 
     if(system_set_reference_reading(reference_reading) != STATE_OK){
+      Serial.println("5");
       return STATE_FAILED_FUNCTION_CALL;
     }
 
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
+      Serial.println("6");
       return STATE_FAILED_FUNCTION_CALL;
     }
     
     if(system_set_display_changed(true) != STATE_OK){
+      Serial.println("7");
       return STATE_FAILED_FUNCTION_CALL;
     }
     
