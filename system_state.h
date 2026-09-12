@@ -41,12 +41,7 @@ typedef struct{
   uint32_t main_led_flash_ms;
   uint32_t adc_function_check_ms;
   uint32_t calibration_button_pushed_ms;
-  uint32_t last_read_timestamp_ms;
 } system_scheduling_t;
-
-typedef struct{
-
-} system_reference_t;
 
 system_state_t system_init(void);
 
@@ -62,6 +57,5 @@ system_state_t system_set_main_led_on(bool led_on);
 system_state_t system_set_calibration_button_pushed(const uint32_t now);
 system_state_t system_set_reference_reading(uint16_t * const reference_reading);
 system_state_t system_get_reference_reading(uint16_t * const reference_reading);
-system_state_t system_set_last_read_timestamp(const uint16_t timestamp);
 
 #endif

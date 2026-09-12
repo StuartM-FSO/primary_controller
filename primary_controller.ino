@@ -229,10 +229,6 @@ system_state_t fsm_read_cells(void){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
-  if(system_set_last_read_timestamp(millis()) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-
   for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
     reading_mv = adc_convert_raw_to_mV(filtered_reading[channel]);
     Serial.print(reading_mv);

@@ -26,7 +26,6 @@ system_state_t system_init(void){
   timer_state.adc_function_check_ms = 0U;
   timer_state.calibration_button_pushed_ms;
   timer_state.cell_read_ms = 0U;
-  timer_state.last_read_timestamp_ms = 0U;
   timer_state.main_led_flash_ms = 0U;
 
   state.initialised = true;
@@ -43,7 +42,6 @@ system_state_t system_get_timer_state(system_scheduling_t *local_state){
   local_state->adc_function_check_ms = timer_state.adc_function_check_ms;
   local_state->calibration_button_pushed_ms = timer_state.calibration_button_pushed_ms;
   local_state->cell_read_ms = timer_state.cell_read_ms;
-  local_state->last_read_timestamp_ms = timer_state.last_read_timestamp_ms;
   local_state->main_led_flash_ms = timer_state.main_led_flash_ms;
   return STATE_OK;
 }
@@ -153,14 +151,6 @@ system_state_t system_get_reference_reading(uint16_t * const reference_reading){
   for(uint8_t channel = 0U; channel < 3U; channel++){
     reference_reading[channel] = state.reference_reading[channel];
   }
-  return STATE_OK;
-}
-
-system_state_t system_set_last_read_timestamp(const uint16_t timestamp){
-  if(!state.initialised){
-    return STATE_UNINITIALISED;
-  }
-  timer_state.last_read_timestamp_ms = timestamp;
   return STATE_OK;
 }
 
