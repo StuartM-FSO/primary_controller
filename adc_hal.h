@@ -20,6 +20,7 @@ hal_adc_status_t adc_init(void);
 hal_adc_status_t adc_health_check(void);
 hal_adc_status_t adc_get_last_good_cell_read(uint16_t * const reading);
 hal_adc_status_t adc_read_cells(void);
+hal_adc_status_t adc_get_timestamp(uint32_t * const timestamp_ms);
 
 uint16_t adc_convert_raw_to_mV(const uint16_t raw_reading);
 

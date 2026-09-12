@@ -30,9 +30,9 @@ static constexpr uint16_t ADC_MINIMUM_POWER_READING_MV = 2500;
 
 typedef struct {
   bool initialised;
-  //uint32_t last_function_check_time;
   Adafruit_ADS1115 device;
   uint16_t cell_raw[THREE_CELLS];
+  uint32_t cell_read_timestamp_ms;
 } internal_state_t;
 
 static internal_state_t state = {};
@@ -61,6 +61,7 @@ hal_adc_status_t adc_init(void) {
   }
   state.device.setGain(GAIN_SIXTEEN);
   state.device.setDataRate(RATE_ADS1115_128SPS);
+  state.cell_read_timestamp_ms = 0U;
   state.initialised = true;
   return ADC_STATUS_OK;
 }
@@ -83,6 +84,7 @@ hal_adc_status_t adc_read_cells(void) {
   for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
     state.cell_raw[channel] = filtered_reading[channel];
   }
+  state.cell_read_timestamp_ms = millis();
   return ADC_STATUS_OK;
 }
 
@@ -123,6 +125,13 @@ hal_adc_status_t adc_get_last_good_cell_read(uint16_t * const reading){
   return ADC_STATUS_OK;
 }
 
+hal_adc_status_t adc_get_timestamp(uint32_t * const timestamp_ms){
+  if(!state.initialised){
+    return ADC_STATUS_NOT_INITIALIZED;
+  }
+  *timestamp_ms = state.cell_read_timestamp_ms;
+  return ADC_STATUS_OK;
+}
 
 // Private
 
