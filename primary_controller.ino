@@ -27,8 +27,6 @@ void setup() {
 
   Wire.begin();
 
-  //pinMode(LED_BUILTIN, OUTPUT);
-
   bool proceed = true;
 
   if(system_init() != STATE_OK){
