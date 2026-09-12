@@ -260,27 +260,22 @@ system_state_t fsm_calibration_write(void){
     Serial.println("Writing calibration");
     
     if(adc_get_last_good_cell_read(reference_reading) != ADC_STATUS_OK){
-      Serial.println("1");
       return STATE_FAILED_FUNCTION_CALL;
     }    
 
     if(eeprom_write_calibration(reference_reading) != MEM_OK){
-      Serial.println("4");
       return STATE_FAILED_FUNCTION_CALL;
     }
 
     if(system_set_reference_reading(reference_reading) != STATE_OK){
-      Serial.println("5");
       return STATE_FAILED_FUNCTION_CALL;
     }
 
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
-      Serial.println("6");
       return STATE_FAILED_FUNCTION_CALL;
     }
     
     if(system_set_display_changed(true) != STATE_OK){
-      Serial.println("7");
       return STATE_FAILED_FUNCTION_CALL;
     }
     
