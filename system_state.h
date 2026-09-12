@@ -21,7 +21,6 @@ typedef enum{
   FSM_ZERO_COUNT = 0,   // Do not use or add states before
   FSM_START_UP,
   FSM_DIVE_MODE,
-  FSM_READ_CELLS,
   FSM_DATA_MODE,
   FSM_CALIBRATION_WAIT,
   FSM_CALIBRATION_WRITE,

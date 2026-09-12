@@ -93,9 +93,6 @@ void loop() {
     case FSM_DIVE_MODE:
       result = fsm_dive_mode(now);
       break;
-    case FSM_READ_CELLS:
-      result = fsm_read_cells();
-      break;
     case FSM_DATA_MODE:
       result = fsm_data_mode(now);
       break;
@@ -119,110 +116,11 @@ void loop() {
 
 // 00 - WIP
 
-system_state_t scheduler_new_cell_read(const uint32_t now){
-  system_scheduling_t local_timers = {};
-  internal_state_t local_state = {};
-  uint16_t filtered_reading[THREE_CELLS] = {};
-  uint16_t conversion_result_ppo2 = 0U;
-  uint16_t conversion_result_mv = 0U;
-
-  if(system_get_timer_state(&local_timers) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-
-  if(system_get_loop_state(&local_state) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-
-  if(has_timer_elapsed(now, local_timers.cell_read_ms, INTERVAL_CELL_READ_MS)){
-    if(!local_state.adc_online){
-      return STATE_ADC_OFFLINE;
-    }
-    if(adc_read_cells() != ADC_STATUS_OK){
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-    
-    // DELETE FOR PRODUCTION
-    if(adc_get_last_good_cell_read(filtered_reading) != ADC_STATUS_OK){
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-    for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
-      if(convert_raw_to_ppo2(filtered_reading[channel], channel, &conversion_result_ppo2) != STATE_OK){
-        return STATE_FAILED_FUNCTION_CALL;
-      }
-      Serial.print(conversion_result_ppo2);
-      Serial.print(" ");
-    }
-    Serial.println();
-    for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
-      conversion_result_mv = adc_convert_raw_to_mV(filtered_reading[channel]);
-      Serial.print(conversion_result_mv);
-      Serial.print("mV ");
-    }
-    Serial.println();
-    // END OF SECTION
-
-    system_set_cell_read_time(now);
-  }
-  return STATE_OK;
-}
-
-system_state_t assign_cell_reference_readings(void){
-  uint16_t temp_reference_readings[THREE_CELLS];
-
-  if(eeprom_read_calibration(temp_reference_readings) != MEM_OK){
-    Serial.println("Cal read failed");
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  if(system_set_reference_reading(temp_reference_readings) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  Serial.println("Ref readings read from EEPROM");
-  return STATE_OK;
-}
-
-system_state_t convert_raw_to_ppo2(const uint16_t raw, const uint8_t channel, uint16_t *const raw_converted_to_ppo2){
-  uint16_t reference_reading[THREE_CELLS] = {};
-  uint32_t ppo2 = 0U;
-  const uint32_t scale = CALIBRATION_PPO2x1000;
-  uint32_t temp = 0U;
-
-  if(raw_converted_to_ppo2 == NULL){
-    return STATE_INVALID_PARAMETER;
-  }
-
-  if(channel >= THREE_CELLS){
-    return STATE_INVALID_PARAMETER;
-  }
-
-  if(system_get_reference_reading(reference_reading) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
 
 
-  /* if(reference_value == 0U){
-    return STATE_REQUIRES_CALIBRATION;
-  } */
-  temp = ((uint32_t)raw) * scale;
-  ppo2 = temp / reference_reading[channel];
-  if (ppo2 > UINT16_MAX) return STATE_OVERFLOW;
-  *raw_converted_to_ppo2 = (uint16_t)ppo2;
-  return STATE_OK;
-}
 
-void debug_print_ppo2(void){
-  uint16_t current_read[THREE_CELLS] = {};
 
-  adc_get_last_good_cell_read(current_read);
-  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
-    uint16_t ppo2 = 0U;
 
-    convert_raw_to_ppo2(current_read[channel], channel, &ppo2);
-    Serial.print(ppo2);
-    Serial.print(" : ");
-  }
-  Serial.println();
-}
 
 // 01 - FSM handlers
 
@@ -250,45 +148,6 @@ system_state_t fsm_dive_mode(const uint32_t now){
     }
     return STATE_OK;
   }
-  return STATE_OK;
-}
-
-system_state_t fsm_read_cells(void){
-  switchstate_t slider = gpio_slide_switch_on();
-  uint16_t filtered_reading[THREE_CELLS] = {};
-  uint16_t reading_mv = 0U;
-
-  Serial.println("fsm_read_cells");
-
-  if(adc_read_cells() != ADC_STATUS_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-
-  if(adc_get_last_good_cell_read(filtered_reading) != ADC_STATUS_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-
-  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
-    reading_mv = adc_convert_raw_to_mV(filtered_reading[channel]);
-    Serial.print(reading_mv);
-    Serial.print("mV ");
-  }
-  Serial.println();
-
-  if(slider == SWITCH_ON){
-    if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
-      Serial.println("Error changing state fsm_read_cells 1");
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-  } else if(slider == SWITCH_OFF){
-    if(system_set_current_state(FSM_DIVE_MODE) != STATE_OK){
-      Serial.println("Error changing state fsm_read_cells 2");
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-  } else {
-    return STATE_INVALID_CONDITION;
-  }
-  debug_print_ppo2();
   return STATE_OK;
 }
 
@@ -442,6 +301,54 @@ system_state_t fsm_calibration_write(const uint32_t now){
 
 // 02 - Scheduler functions
 
+system_state_t scheduler_new_cell_read(const uint32_t now){
+  system_scheduling_t local_timers = {};
+  internal_state_t local_state = {};
+  uint16_t filtered_reading[THREE_CELLS] = {};
+  uint16_t conversion_result_ppo2 = 0U;
+  uint16_t conversion_result_mv = 0U;
+
+  if(system_get_timer_state(&local_timers) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  if(has_timer_elapsed(now, local_timers.cell_read_ms, INTERVAL_CELL_READ_MS)){
+    if(!local_state.adc_online){
+      return STATE_ADC_OFFLINE;
+    }
+    if(adc_read_cells() != ADC_STATUS_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    
+    // DELETE FOR PRODUCTION
+    if(adc_get_last_good_cell_read(filtered_reading) != ADC_STATUS_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+      if(convert_raw_to_ppo2(filtered_reading[channel], channel, &conversion_result_ppo2) != STATE_OK){
+        return STATE_FAILED_FUNCTION_CALL;
+      }
+      Serial.print(conversion_result_ppo2);
+      Serial.print(" ");
+    }
+    Serial.println();
+    for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+      conversion_result_mv = adc_convert_raw_to_mV(filtered_reading[channel]);
+      Serial.print(conversion_result_mv);
+      Serial.print("mV ");
+    }
+    Serial.println();
+    // END OF SECTION
+
+    system_set_cell_read_time(now);
+  }
+  return STATE_OK;
+}
+
 system_state_t scheduler_adc_health_check(const uint32_t now, const uint32_t last_time){
   if(has_timer_elapsed(now, last_time, INTERVAL_ADC_CHECK_MS)){   // Check if ADC is online once a second
     hal_adc_status_t current_adc_status = adc_health_check();
@@ -477,26 +384,6 @@ system_state_t scheduler_led_flash(const uint32_t now, const uint32_t last_time,
       return STATE_FAILED_FUNCTION_CALL;
     }
     digitalWrite(LED_BUILTIN, led_on);
-  }
-  return STATE_OK;
-}
-
-system_state_t x_scheduler_read_cells(const uint32_t now, const uint32_t last_time, bool * const cell_read_due){
-  if(cell_read_due == NULL){
-    return STATE_INVALID_PARAMETER;
-  }
-  if(has_timer_elapsed(now, last_time, INTERVAL_CELL_READ_MS)){
-    if(system_set_cell_read_time(now) != STATE_OK){
-      Serial.println("Error set cell read time, scheduler read cells");
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-    if(system_set_current_state(FSM_READ_CELLS) != STATE_OK){
-      Serial.println("Error setting state, scheduler read cells");
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-    *cell_read_due = true;
-  } else {
-    *cell_read_due = false;
   }
   return STATE_OK;
 }
@@ -608,5 +495,50 @@ system_state_t screen_print_ppo2(void){
     display_print(buffer);
     display_print(" ");
   }
+  return STATE_OK;
+}
+
+// 04 - General helpers
+
+system_state_t assign_cell_reference_readings(void){
+  uint16_t temp_reference_readings[THREE_CELLS];
+
+  if(eeprom_read_calibration(temp_reference_readings) != MEM_OK){
+    Serial.println("Cal read failed");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  if(system_set_reference_reading(temp_reference_readings) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  Serial.println("Ref readings read from EEPROM");
+  return STATE_OK;
+}
+
+system_state_t convert_raw_to_ppo2(const uint16_t raw, const uint8_t channel, uint16_t *const raw_converted_to_ppo2){
+  uint16_t reference_reading[THREE_CELLS] = {};
+  uint32_t ppo2 = 0U;
+  const uint32_t scale = CALIBRATION_PPO2x1000;
+  uint32_t temp = 0U;
+
+  if(raw_converted_to_ppo2 == NULL){
+    return STATE_INVALID_PARAMETER;
+  }
+
+  if(channel >= THREE_CELLS){
+    return STATE_INVALID_PARAMETER;
+  }
+
+  if(system_get_reference_reading(reference_reading) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+
+  /* if(reference_value == 0U){
+    return STATE_REQUIRES_CALIBRATION;
+  } */
+  temp = ((uint32_t)raw) * scale;
+  ppo2 = temp / reference_reading[channel];
+  if (ppo2 > UINT16_MAX) return STATE_OVERFLOW;
+  *raw_converted_to_ppo2 = (uint16_t)ppo2;
   return STATE_OK;
 }
