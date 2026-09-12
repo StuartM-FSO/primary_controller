@@ -97,7 +97,7 @@ void loop() {
       result = fsm_calibration_wait(now);
       break;
     case FSM_CALIBRATION_WRITE:
-      result = fsm_calibration_write(now);
+      result = fsm_calibration_write();
       break;
     default:
       result = STATE_INVALID_CONDITION;
@@ -232,7 +232,7 @@ system_state_t fsm_calibration_wait(const uint32_t now){
   }
 }
 
-system_state_t fsm_calibration_write(const uint32_t now){
+system_state_t fsm_calibration_write(void){
   switchstate_t button = gpio_momentary_pushed();
   switchstate_t slider = gpio_slide_switch_on();
   uint16_t reference_reading[THREE_CELLS] = {};
