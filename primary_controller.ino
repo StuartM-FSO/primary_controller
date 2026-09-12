@@ -336,7 +336,9 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     Serial.println();
     // END OF SECTION
 
-    system_set_cell_read_time(now);
+    if(system_set_cell_read_time(now) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
   }
   return STATE_OK;
 }
