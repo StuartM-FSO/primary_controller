@@ -88,7 +88,7 @@ void loop() {
       result = fsm_start_up();
       break;
     case FSM_DIVE_MODE:
-      result = fsm_dive_mode(now);
+      result = fsm_dive_mode();
       break;
     case FSM_DATA_MODE:
       result = fsm_data_mode(now);
@@ -137,7 +137,7 @@ system_state_t fsm_start_up(void){
   return STATE_OK;
 }
 
-system_state_t fsm_dive_mode(const uint32_t now){
+system_state_t fsm_dive_mode(void){
   if(gpio_slide_switch_on() == SWITCH_ON){
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
       Serial.println("Error changing state in dive mode");
