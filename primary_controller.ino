@@ -80,6 +80,12 @@ void loop() {
     // Handle error
   }
 
+  if(scheduler_new_cell_read(now) != STATE_OK){
+    Serial.println("Failed reading cell");
+    for(;;);
+    // Handle error
+  }
+
   switch (local_state.current_state) {
     case FSM_START_UP:
       result = fsm_start_up();
@@ -112,6 +118,52 @@ void loop() {
 }
 
 // 00 - WIP
+
+system_state_t scheduler_new_cell_read(const uint32_t now){
+  system_scheduling_t local_timers = {};
+  internal_state_t local_state = {};
+  uint16_t filtered_reading[THREE_CELLS] = {};
+  uint16_t conversion_result_ppo2 = 0U;
+  uint16_t conversion_result_mv = 0U;
+
+  if(system_get_timer_state(&local_timers) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  if(has_timer_elapsed(now, local_timers.cell_read_ms, INTERVAL_CELL_READ_MS)){
+    if(!local_state.adc_online){
+      return STATE_ADC_OFFLINE;
+    }
+    if(adc_read_cells() != ADC_STATUS_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    
+    // DELETE FOR PRODUCTION
+    adc_get_last_good_cell_read(filtered_reading);
+    for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+      if(convert_raw_to_ppo2(filtered_reading[channel], channel, &conversion_result_ppo2) != STATE_OK){
+        return STATE_FAILED_FUNCTION_CALL;
+      }
+      Serial.print(conversion_result_ppo2);
+      Serial.print(" ");
+    }
+    Serial.println();
+    for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+      conversion_result_mv = adc_convert_raw_to_mV(filtered_reading[channel]);
+      Serial.print(conversion_result_mv);
+      Serial.print("mV ");
+    }
+    Serial.println();
+    // END OF SECTION
+
+    system_set_cell_read_time(now);
+  }
+  return STATE_OK;
+}
 
 system_state_t assign_cell_reference_readings(void){
   uint16_t temp_reference_readings[THREE_CELLS];
@@ -189,21 +241,6 @@ system_state_t fsm_start_up(void){
 }
 
 system_state_t fsm_dive_mode(const uint32_t now){
-  system_scheduling_t local_timers = {};
-  bool cell_read_due = false;
-
-  if(system_get_timer_state(&local_timers) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-
-  if(scheduler_read_cells(now, local_timers.cell_read_ms, &cell_read_due) != STATE_OK){
-    Serial.println("Error running read cells scheduler");
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  if(cell_read_due){
-    return STATE_OK;
-  }
-
   if(gpio_slide_switch_on() == SWITCH_ON){
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
       Serial.println("Error changing state in dive mode");
@@ -254,21 +291,6 @@ system_state_t fsm_read_cells(void){
 }
 
 system_state_t fsm_data_mode(const uint32_t now){
-  system_scheduling_t local_timers = {};
-  bool cell_read_due = false;
-
-  if(system_get_timer_state(&local_timers) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-
-  if(scheduler_read_cells(now, local_timers.cell_read_ms, &cell_read_due) != STATE_OK){
-    Serial.println("Error checking cell read time data mode");
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  if(cell_read_due){
-    return STATE_OK;
-  }
-
   if(gpio_slide_switch_on() == SWITCH_OFF){
     if(screen_off() != STATE_OK){
       Serial.println("Error turning off screen in data mode");
@@ -457,7 +479,7 @@ system_state_t scheduler_led_flash(const uint32_t now, const uint32_t last_time,
   return STATE_OK;
 }
 
-system_state_t scheduler_read_cells(const uint32_t now, const uint32_t last_time, bool * const cell_read_due){
+system_state_t x_scheduler_read_cells(const uint32_t now, const uint32_t last_time, bool * const cell_read_due){
   if(cell_read_due == NULL){
     return STATE_INVALID_PARAMETER;
   }
