@@ -32,21 +32,26 @@ typedef struct{
   bool main_led_on;
   bool adc_online;
   bool display_changed;
-
   fsm_state_t current_state;
-
-  uint32_t cell_read_time;
-  uint32_t main_led_flash_time;
-  uint32_t adc_function_check_time;
-  uint32_t calibration_button_pushed;
-  uint32_t last_read_timestamp;
-
   uint16_t reference_reading[3U];
 } internal_state_t;
 
+typedef struct{
+  uint32_t cell_read_ms;
+  uint32_t main_led_flash_ms;
+  uint32_t adc_function_check_ms;
+  uint32_t calibration_button_pushed_ms;
+  uint32_t last_read_timestamp_ms;
+} system_scheduling_t;
+
+typedef struct{
+
+} system_reference_t;
+
 system_state_t system_init(void);
 
-system_state_t system_get_loop_state(internal_state_t *loop_state);
+system_state_t system_get_loop_state(internal_state_t *local_state);
+system_state_t system_get_timer_state(system_scheduling_t *local_state);
 system_state_t system_set_cell_read_time(const uint32_t now);
 system_state_t system_set_main_led_timer(const uint32_t now);
 system_state_t system_set_adc_function_check_time(const uint32_t now);

@@ -1,3 +1,5 @@
+#include <ctime>
+#include "IRQManager.h"
 #include <sys/_stdint.h>
 #include <cstddef>
 #include <stdint.h>
@@ -5,6 +7,8 @@
 
 
 static internal_state_t state = {};
+
+static system_scheduling_t timer_state = {};
 
 
 // Public API
@@ -15,35 +19,44 @@ system_state_t system_init(void){
   }
 
   state.current_state = FSM_START_UP;
-  state.main_led_flash_time = 0U;
-  state.cell_read_time = 0U;
-  state.adc_function_check_time = 0U;
-  state.calibration_button_pushed = 0U;
-  state.last_read_timestamp = 0U;
   state.main_led_on = false;
   state.adc_online = false;
   state.display_changed = true;
+
+  timer_state.adc_function_check_ms = 0U;
+  timer_state.calibration_button_pushed_ms;
+  timer_state.cell_read_ms = 0U;
+  timer_state.last_read_timestamp_ms = 0U;
+  timer_state.main_led_flash_ms = 0U;
+
   state.initialised = true;
   return STATE_OK;
 }
 
 // Setters & getters
 
-system_state_t system_get_loop_state(internal_state_t *loop_state){
+system_state_t system_get_timer_state(system_scheduling_t *local_state){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
 
-  loop_state->cell_read_time = state.cell_read_time;
-  loop_state->main_led_flash_time = state.main_led_flash_time;
-  loop_state->adc_function_check_time = state.adc_function_check_time;
-  loop_state->current_state = state.current_state;
-  loop_state->main_led_on = state.main_led_on;
-  loop_state->adc_online = state.adc_online;
-  loop_state->initialised = state.initialised;
-  loop_state->display_changed = state.display_changed;
-  loop_state->calibration_button_pushed = state.calibration_button_pushed;
-  loop_state->last_read_timestamp = state.last_read_timestamp;
+  local_state->adc_function_check_ms = timer_state.adc_function_check_ms;
+  local_state->calibration_button_pushed_ms = timer_state.calibration_button_pushed_ms;
+  local_state->cell_read_ms = timer_state.cell_read_ms;
+  local_state->last_read_timestamp_ms = timer_state.last_read_timestamp_ms;
+  local_state->main_led_flash_ms = timer_state.main_led_flash_ms;
+  return STATE_OK;
+}
+
+system_state_t system_get_loop_state(internal_state_t *local_state){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+
+  local_state->current_state = state.current_state;
+  local_state->adc_online = state.adc_online;
+  local_state->display_changed = state.display_changed;
+  local_state->main_led_on = state.main_led_on;
   return STATE_OK;
 }
 
@@ -51,8 +64,7 @@ system_state_t system_set_cell_read_time(const uint32_t now){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
-
-  state.cell_read_time = now;
+  timer_state.cell_read_ms = now;
   return STATE_OK;
 }
 
@@ -60,8 +72,7 @@ system_state_t system_set_main_led_timer(const uint32_t now){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
-
-  state.main_led_flash_time = now;
+  timer_state.main_led_flash_ms = now;
   return STATE_OK;
 }
 
@@ -69,8 +80,7 @@ system_state_t system_set_adc_function_check_time(const uint32_t now){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
-
-  state.adc_function_check_time = now;
+  timer_state.adc_function_check_ms = now;
   return STATE_OK;
 }
 
@@ -115,7 +125,7 @@ system_state_t system_set_calibration_button_pushed(const uint32_t now){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
-  state.calibration_button_pushed = now;
+  timer_state.calibration_button_pushed_ms = now;
   return STATE_OK;
 }
 
@@ -150,8 +160,7 @@ system_state_t system_set_last_read_timestamp(const uint16_t timestamp){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
-
-  state.last_read_timestamp = timestamp;
+  timer_state.last_read_timestamp_ms = timestamp;
   return STATE_OK;
 }
 

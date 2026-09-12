@@ -52,28 +52,35 @@ void setup() {
 
 void loop() {
   uint32_t now = millis();
-  internal_state_t loop_state = {};
+  internal_state_t local_state = {};
+  system_scheduling_t local_timers = {};
   system_state_t result = STATE_UNINITIALISED;
 
-  if(system_get_loop_state(&loop_state) != STATE_OK){   // Create local copy of system state
+  if(system_get_loop_state(&local_state) != STATE_OK){   // Create local copy of system state
     Serial.println("Error getting loop state");
     for(;;);
     // Handle error
   }
+  
+  if(system_get_timer_state(&local_timers) != STATE_OK){
+    Serial.println("Error getting timer state");
+    for(;;);
+    // Handle error
+  }
 
-  if(scheduler_led_flash(now, loop_state.main_led_flash_time, loop_state.main_led_on) != STATE_OK){
+  if(scheduler_led_flash(now, local_timers.main_led_flash_ms, local_state.main_led_on) != STATE_OK){
     Serial.println("LED flash failure");
     for(;;);
     // Handle error
   }
 
-  if(scheduler_adc_health_check(now, loop_state.adc_function_check_time) != STATE_OK){
+  if(scheduler_adc_health_check(now, local_timers.adc_function_check_ms) != STATE_OK){
     Serial.println("ADC health check scheduler failed");
     for(;;);
     // Handle error
   }
 
-  switch (loop_state.current_state) {
+  switch (local_state.current_state) {
     case FSM_START_UP:
       result = fsm_start_up();
       break;
@@ -182,15 +189,14 @@ system_state_t fsm_start_up(void){
 }
 
 system_state_t fsm_dive_mode(const uint32_t now){
-  internal_state_t local_state = {};
+  system_scheduling_t local_timers = {};
   bool cell_read_due = false;
 
-  if(system_get_loop_state(&local_state) != STATE_OK){    // Create local copy of system state
-    Serial.println("Error reading state, fsm_dive_mode");
+  if(system_get_timer_state(&local_timers) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
-  if(scheduler_read_cells(now, local_state.cell_read_time, &cell_read_due) != STATE_OK){
+  if(scheduler_read_cells(now, local_timers.cell_read_ms, &cell_read_due) != STATE_OK){
     Serial.println("Error running read cells scheduler");
     return STATE_FAILED_FUNCTION_CALL;
   }
@@ -252,15 +258,14 @@ system_state_t fsm_read_cells(void){
 }
 
 system_state_t fsm_data_mode(const uint32_t now){
-  internal_state_t local_state = {};
+  system_scheduling_t local_timers = {};
   bool cell_read_due = false;
 
-  if(system_get_loop_state(&local_state) != STATE_OK){
-    Serial.println("Error getting local state in data mode");
+  if(system_get_timer_state(&local_timers) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
-  if(scheduler_read_cells(now, local_state.cell_read_time, &cell_read_due) != STATE_OK){
+  if(scheduler_read_cells(now, local_timers.cell_read_ms, &cell_read_due) != STATE_OK){
     Serial.println("Error checking cell read time data mode");
     return STATE_FAILED_FUNCTION_CALL;
   }
@@ -304,10 +309,15 @@ system_state_t fsm_data_mode(const uint32_t now){
 system_state_t fsm_calibration_wait(const uint32_t now){
   switchstate_t button = gpio_momentary_pushed();
   switchstate_t slider = gpio_slide_switch_on();
-  internal_state_t local_state = {};
+  //internal_state_t local_state = {};
+  system_scheduling_t local_timers = {};
   bool timed_out = false;
 
-  if(system_get_loop_state(&local_state) != STATE_OK){
+  /* if(system_get_loop_state(&local_state) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  } */
+
+  if(system_get_timer_state(&local_timers) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
@@ -325,10 +335,10 @@ system_state_t fsm_calibration_wait(const uint32_t now){
     return STATE_INVALID_CONDITION;
   }
 
-  timed_out = has_timer_elapsed(now, local_state.calibration_button_pushed, INTERVAL_CAL_WAIT_BEFORE_WRITE_MS);
+  timed_out = has_timer_elapsed(now, local_timers.calibration_button_pushed_ms, INTERVAL_CAL_WAIT_BEFORE_WRITE_MS);
 
   if(button == SWITCH_ON){
-    uint32_t elapsed = now - local_state.calibration_button_pushed;
+    uint32_t elapsed = now - local_timers.calibration_button_pushed_ms;
     if(screen_hold_button(elapsed) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
