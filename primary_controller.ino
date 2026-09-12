@@ -99,6 +99,12 @@ void loop() {
     case FSM_CALIBRATION_WRITE:
       result = fsm_calibration_write();
       break;
+    case FSM_FAILURE_RECOVERABLE:
+      result = fsm_failure_recoverable();
+      break;
+    case FSM_FAILURE_HARD:
+      result = fsm_failure_hard();
+      break;
     default:
       result = STATE_INVALID_CONDITION;
       break;
@@ -283,6 +289,21 @@ system_state_t fsm_calibration_write(void){
   } else {
     return STATE_INVALID_CONDITION;
   }
+}
+
+system_state_t fsm_failure_recoverable(void){
+  /* In this state the system will force a reset and try to recover. If the reset does not bring all systems back
+  online then it will transition to FSM_FAILURE_HARD where it will remain in a safe state */
+
+  // Replace code below with reset routine
+  Serial.println("IN FSM_FAILURE_RECOVERABLE MODE");
+  for(;;);
+}
+
+system_state_t fsm_failure_hard(){
+  /* Remain in a safe state */
+  Serial.println("FAILED IN SAFE STATE");
+  for(;;);
 }
 
 

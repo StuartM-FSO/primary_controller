@@ -24,6 +24,8 @@ typedef enum{
   FSM_DATA_MODE,
   FSM_CALIBRATION_WAIT,
   FSM_CALIBRATION_WRITE,
+  FSM_FAILURE_RECOVERABLE,
+  FSM_FAILURE_HARD,
   FSM_END_COUNT         // Do not use or add states beyond
 } fsm_state_t;
 
