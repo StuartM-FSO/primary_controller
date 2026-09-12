@@ -143,7 +143,9 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     }
     
     // DELETE FOR PRODUCTION
-    adc_get_last_good_cell_read(filtered_reading);
+    if(adc_get_last_good_cell_read(filtered_reading) != ADC_STATUS_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
     for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
       if(convert_raw_to_ppo2(filtered_reading[channel], channel, &conversion_result_ppo2) != STATE_OK){
         return STATE_FAILED_FUNCTION_CALL;
@@ -593,7 +595,7 @@ system_state_t screen_print_ppo2(void){
   uint16_t current_ppo2 = 0U;
   char buffer[FORMATTING_PPO2_STR_LEN] = {};
 
-  if(adc_get_last_good_cell_read(current_read) != STATE_OK){
+  if(adc_get_last_good_cell_read(current_read) != ADC_STATUS_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
