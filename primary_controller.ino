@@ -185,13 +185,8 @@ system_state_t fsm_data_mode(const uint32_t now){
 system_state_t fsm_calibration_wait(const uint32_t now){
   switchstate_t button = gpio_momentary_pushed();
   switchstate_t slider = gpio_slide_switch_on();
-  //internal_state_t local_state = {};
   system_scheduling_t local_timers = {};
   bool timed_out = false;
-
-  /* if(system_get_loop_state(&local_state) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  } */
 
   if(system_get_timer_state(&local_timers) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
