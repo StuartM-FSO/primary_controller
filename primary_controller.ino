@@ -15,7 +15,6 @@ constexpr uint32_t MAXIMUM_AGE_OF_CELL_READ_MS = 5000U;
 constexpr uint8_t THREE_CELLS = 3U;
 constexpr uint16_t CALIBRATION_PPO2x1000 = 970U;
 
-// To be moved to display protocol library
 constexpr uint8_t SCREEN_LINE_PPO2 = 0U;
 constexpr uint8_t SCREEN_LINE_MV = 8U;
 
