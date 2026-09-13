@@ -91,7 +91,6 @@ hal_adc_status_t adc_read_cells(void) {
 }
 
 hal_adc_status_t adc_health_check(void) {
-  return ADC_STATUS_HW_ERROR;
   if (!state.initialised) {
     return ADC_STATUS_NOT_INITIALIZED;
   }

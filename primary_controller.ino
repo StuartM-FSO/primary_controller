@@ -14,6 +14,7 @@ constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 3000U;
 constexpr uint32_t MAXIMUM_AGE_OF_CELL_READ_MS = 5000U;
 constexpr uint8_t THREE_CELLS = 3U;
 constexpr uint16_t CALIBRATION_PPO2x1000 = 970U;
+constexpr uint8_t MAXIMUM_ALLOWED_FAILED_ATTEMPTS = 10U;
 
 constexpr uint8_t SCREEN_LINE_PPO2 = 0U;
 constexpr uint8_t SCREEN_LINE_MV = 8U;
@@ -53,6 +54,7 @@ void loop() {
   system_scheduling_t local_timers = {};
   system_state_t result = STATE_UNINITIALISED;
   system_state_t scheduler_result = STATE_UNINITIALISED;
+  uint8_t failed_attempts = 0U;
 
   if(system_get_loop_state(&local_state) != STATE_OK){   // Create local copy of system state
     Serial.println("Error getting loop state");
@@ -84,9 +86,19 @@ void loop() {
   if((scheduler_result == STATE_TASK_NOT_SCHEDULED) || (scheduler_result == STATE_OK)){
     // Do nothing
   } else if(scheduler_result == STATE_ADC_OFFLINE){
-    Serial.println("ADC offline, no read");
+    if(adc_get_failed_attempts(&failed_attempts) != ADC_STATUS_OK){
+      Serial.println("Failure getting failed_attempts");
+      for(;;);
+      // Handle error
+    }
+    if(failed_attempts > MAXIMUM_ALLOWED_FAILED_ATTEMPTS){
+      Serial.println("Max failed attempts reached");
+      for(;;);
+      // Handle error
+    }
   } else {
     Serial.println("ADC failure");
+    Serial.println(scheduler_result);
     for(;;);
     // Handle error
   }
