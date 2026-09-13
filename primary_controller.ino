@@ -81,11 +81,22 @@ void loop() {
   }
 
   scheduler_result = scheduler_new_cell_read(now);
-  if(scheduler_result != STATE_OK){
-    Serial.println("Failed reading cell");
+  if((scheduler_result == STATE_TASK_NOT_SCHEDULED) || (scheduler_result == STATE_OK)){
+    // Do nothing
+  } else if(scheduler_result == STATE_ADC_OFFLINE){
+    Serial.println("ADC offline, no read");
+  } else {
+    Serial.println("ADC failure");
     for(;;);
     // Handle error
   }
+
+
+  /* if(scheduler_result != STATE_OK){
+    Serial.println("Failed reading cell");
+    for(;;);
+    // Handle error
+  } */
 
   switch (local_state.current_state) {
     case FSM_START_UP:
@@ -329,6 +340,9 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
   }
 
   if(has_timer_elapsed(now, local_timers.cell_read_ms, INTERVAL_CELL_READ_MS)){
+    if(system_set_cell_read_time(now) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
     if(!local_state.adc_online){
       return STATE_ADC_OFFLINE;
     }
@@ -356,9 +370,9 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     Serial.println();
     // END OF SECTION
 
-    if(system_set_cell_read_time(now) != STATE_OK){
-      return STATE_FAILED_FUNCTION_CALL;
-    }
+    
+  } else {
+    return STATE_TASK_NOT_SCHEDULED;
   }
   return STATE_OK;
 }
