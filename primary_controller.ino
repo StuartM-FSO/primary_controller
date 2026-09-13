@@ -52,6 +52,7 @@ void loop() {
   internal_state_t local_state = {};
   system_scheduling_t local_timers = {};
   system_state_t result = STATE_UNINITIALISED;
+  system_state_t scheduler_result = STATE_UNINITIALISED;
 
   if(system_get_loop_state(&local_state) != STATE_OK){   // Create local copy of system state
     Serial.println("Error getting loop state");
@@ -65,19 +66,22 @@ void loop() {
     // Handle error
   }
 
-  if(scheduler_led_flash(now, local_timers.main_led_flash_ms, local_state.main_led_on) != STATE_OK){
+  scheduler_result = scheduler_led_flash(now, local_timers.main_led_flash_ms, local_state.main_led_on);
+  if(scheduler_result != STATE_OK){
     Serial.println("LED flash failure");
     for(;;);
     // Handle error
   }
 
-  if(scheduler_adc_health_check(now, local_timers.adc_function_check_ms) != STATE_OK){
+  scheduler_result = scheduler_adc_health_check(now, local_timers.adc_function_check_ms);
+  if(scheduler_result != STATE_OK){
     Serial.println("ADC health check scheduler failed");
     for(;;);
     // Handle error
   }
 
-  if(scheduler_new_cell_read(now) != STATE_OK){
+  scheduler_result = scheduler_new_cell_read(now);
+  if(scheduler_result != STATE_OK){
     Serial.println("Failed reading cell");
     for(;;);
     // Handle error
