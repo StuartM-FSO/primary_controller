@@ -33,6 +33,7 @@ typedef struct {
   Adafruit_ADS1115 device;
   uint16_t cell_raw[THREE_CELLS];
   uint32_t cell_read_timestamp_ms;
+  uint8_t failed_attempts;
 } internal_state_t;
 
 static internal_state_t state = {};
@@ -62,6 +63,7 @@ hal_adc_status_t adc_init(void) {
   state.device.setGain(GAIN_SIXTEEN);
   state.device.setDataRate(RATE_ADS1115_128SPS);
   state.cell_read_timestamp_ms = 0U;
+  state.failed_attempts = 0U;
   state.initialised = true;
   return ADC_STATUS_OK;
 }
@@ -94,8 +96,10 @@ hal_adc_status_t adc_health_check(void) {
     return ADC_STATUS_NOT_INITIALIZED;
   }
   if (is_powered() && is_connected()) {
+    state.failed_attempts = 0U;
     return ADC_STATUS_OK;
   } else {
+    state.failed_attempts++;
     return ADC_STATUS_HW_ERROR;
   }
 }
@@ -131,6 +135,17 @@ hal_adc_status_t adc_get_timestamp(uint32_t * const timestamp_ms){
     return ADC_STATUS_NOT_INITIALIZED;
   }
   *timestamp_ms = state.cell_read_timestamp_ms;
+  return ADC_STATUS_OK;
+}
+
+hal_adc_status_t adc_get_failed_attempts(uint8_t * const failed_attempts){
+  if(!state.initialised){
+    return ADC_STATUS_NOT_INITIALIZED;
+  }
+  if(failed_attempts == NULL){
+    return ADC_STATUS_INVALID_PARAMETER;
+  }
+  *failed_attempts = state.failed_attempts;
   return ADC_STATUS_OK;
 }
 
