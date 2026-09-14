@@ -55,6 +55,7 @@ void loop() {
   system_state_t result = STATE_UNINITIALISED;
   system_state_t scheduler_result = STATE_UNINITIALISED;
   uint8_t failed_attempts = 0U;
+  bool scheduler_success = false;
 
   if(system_get_loop_state(&local_state) != STATE_OK){   // Create local copy of system state
     Serial.println("Error getting loop state");
@@ -85,7 +86,7 @@ void loop() {
   scheduler_result = scheduler_new_cell_read(now);
   if((scheduler_result == STATE_TASK_NOT_SCHEDULED) || (scheduler_result == STATE_OK)){
     // Do nothing
-  } else if(scheduler_result == STATE_ADC_OFFLINE){
+  } else{
     if(adc_get_failed_attempts(&failed_attempts) != ADC_STATUS_OK){
       Serial.println("Failure getting failed_attempts");
       for(;;);
@@ -96,11 +97,6 @@ void loop() {
       for(;;);
       // Handle error
     }
-  } else {
-    Serial.println("ADC failure");
-    Serial.println(scheduler_result);
-    for(;;);
-    // Handle error
   }
 
 
