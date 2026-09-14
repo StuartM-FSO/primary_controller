@@ -84,51 +84,14 @@ void loop() {
 
   if(result != STATE_OK){
     Serial.println("Loop failed");
-    for(;;);
+    fsm_failure_recoverable();
     // Handle error
   }
 }
 
 // 00 - WIP
 
-fsm_state_t run_scheduled_tasks(const uint32_t now){
-  internal_state_t local_state = {};
-  system_scheduling_t local_timers = {};
-  uint8_t failed_attempts = 0U;
 
-  if(system_get_loop_state(&local_state) != STATE_OK){   // Create local copy of system state
-    Serial.println("Error getting loop state");
-    return FSM_FAILURE_RECOVERABLE;
-  }
-  
-  if(system_get_timer_state(&local_timers) != STATE_OK){
-    Serial.println("Error getting timer state");
-    return FSM_FAILURE_RECOVERABLE;
-  }
-
-  if(scheduler_led_flash(now, local_timers.main_led_flash_ms, local_state.main_led_on) != STATE_OK){
-    Serial.println("LED flash failure");
-    return FSM_FAILURE_RECOVERABLE;
-  }
-
-  if(scheduler_adc_health_check(now, local_timers.adc_function_check_ms) != STATE_OK){
-    Serial.println("ADC health check scheduler failed");
-    return FSM_FAILURE_RECOVERABLE;
-  }
-
-  if(scheduler_new_cell_read(now) != STATE_OK){
-    if(adc_get_failed_attempts(&failed_attempts) != ADC_STATUS_OK){
-      Serial.println("Failure getting failed_attempts");
-      return FSM_FAILURE_RECOVERABLE;
-    }
-    if(failed_attempts > MAXIMUM_ALLOWED_FAILED_ATTEMPTS){
-      Serial.println("Max failed attempts reached");
-      return FSM_FAILURE_RECOVERABLE;
-    }
-  }
-
-  return local_state.current_state;
-}
 
 
 
@@ -317,6 +280,45 @@ system_state_t fsm_failure_hard(){
 
 
 // 02 - Scheduler functions
+
+fsm_state_t run_scheduled_tasks(const uint32_t now){
+  internal_state_t local_state = {};
+  system_scheduling_t local_timers = {};
+  uint8_t failed_attempts = 0U;
+
+  if(system_get_loop_state(&local_state) != STATE_OK){   // Create local copy of system state
+    Serial.println("Error getting loop state");
+    return FSM_FAILURE_RECOVERABLE;
+  }
+  
+  if(system_get_timer_state(&local_timers) != STATE_OK){
+    Serial.println("Error getting timer state");
+    return FSM_FAILURE_RECOVERABLE;
+  }
+
+  if(scheduler_led_flash(now, local_timers.main_led_flash_ms, local_state.main_led_on) != STATE_OK){
+    Serial.println("LED flash failure");
+    return FSM_FAILURE_RECOVERABLE;
+  }
+
+  if(scheduler_adc_health_check(now, local_timers.adc_function_check_ms) != STATE_OK){
+    Serial.println("ADC health check scheduler failed");
+    return FSM_FAILURE_RECOVERABLE;
+  }
+
+  if(scheduler_new_cell_read(now) != STATE_OK){
+    if(adc_get_failed_attempts(&failed_attempts) != ADC_STATUS_OK){
+      Serial.println("Failure getting failed_attempts");
+      return FSM_FAILURE_RECOVERABLE;
+    }
+    if(failed_attempts > MAXIMUM_ALLOWED_FAILED_ATTEMPTS){
+      Serial.println("Max failed attempts reached");
+      return FSM_FAILURE_RECOVERABLE;
+    }
+  }
+
+  return local_state.current_state;
+}
 
 system_state_t scheduler_new_cell_read(const uint32_t now){
   system_scheduling_t local_timers = {};
