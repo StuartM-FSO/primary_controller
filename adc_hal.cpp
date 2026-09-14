@@ -64,6 +64,7 @@ hal_adc_status_t adc_init(void) {
   state.device.setDataRate(RATE_ADS1115_128SPS);
   state.cell_read_timestamp_ms = 0U;
   state.failed_attempts = 0U;
+  state.cell_read_timestamp_ms = millis();
   state.initialised = true;
   return ADC_STATUS_OK;
 }

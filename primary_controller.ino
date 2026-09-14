@@ -11,7 +11,6 @@ constexpr uint32_t INTERVAL_CELL_READ_MS = 1000U;
 constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
 constexpr uint32_t INTERVAL_ADC_CHECK_MS = 1000U;
 constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 3000U;
-constexpr uint32_t MAXIMUM_AGE_OF_CELL_READ_MS = 5000U;
 constexpr uint8_t THREE_CELLS = 3U;
 constexpr uint16_t CALIBRATION_PPO2x1000 = 970U;
 constexpr uint8_t MAXIMUM_ALLOWED_FAILED_ATTEMPTS = 10U;
@@ -127,6 +126,21 @@ system_state_t fsm_dive_mode(void){
 }
 
 system_state_t fsm_data_mode(const uint32_t now){
+  internal_state_t local_state = {};
+  uint32_t time_stamp = 0U;
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    Serial.println("Failed getting state, fsm_data_mode");
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  if(!local_state.adc_online){
+    display_clear();
+    display_set_cursor(0, 0);
+    display_println("ADC FAILED");
+    display_update();
+    return STATE_OK;
+  }
+
   if(gpio_slide_switch_on() == SWITCH_OFF){
     if(screen_off() != STATE_OK){
       Serial.println("Error turning off screen in data mode");
