@@ -50,63 +50,12 @@ void setup() {
 
 void loop() {
   uint32_t now = millis();
-  internal_state_t local_state = {};
-  system_scheduling_t local_timers = {};
   system_state_t result = STATE_UNINITIALISED;
-  system_state_t scheduler_result = STATE_UNINITIALISED;
-  uint8_t failed_attempts = 0U;
-  bool scheduler_success = false;
+  fsm_state_t current_state = FSM_FAILURE_RECOVERABLE;
 
-  if(system_get_loop_state(&local_state) != STATE_OK){   // Create local copy of system state
-    Serial.println("Error getting loop state");
-    for(;;);
-    // Handle error
-  }
-  
-  if(system_get_timer_state(&local_timers) != STATE_OK){
-    Serial.println("Error getting timer state");
-    for(;;);
-    // Handle error
-  }
+  current_state = run_scheduled_tasks(now);
 
-  scheduler_result = scheduler_led_flash(now, local_timers.main_led_flash_ms, local_state.main_led_on);
-  if(scheduler_result != STATE_OK){
-    Serial.println("LED flash failure");
-    for(;;);
-    // Handle error
-  }
-
-  scheduler_result = scheduler_adc_health_check(now, local_timers.adc_function_check_ms);
-  if(scheduler_result != STATE_OK){
-    Serial.println("ADC health check scheduler failed");
-    for(;;);
-    // Handle error
-  }
-
-  scheduler_result = scheduler_new_cell_read(now);
-  if((scheduler_result == STATE_TASK_NOT_SCHEDULED) || (scheduler_result == STATE_OK)){
-    // Do nothing
-  } else{
-    if(adc_get_failed_attempts(&failed_attempts) != ADC_STATUS_OK){
-      Serial.println("Failure getting failed_attempts");
-      for(;;);
-      // Handle error
-    }
-    if(failed_attempts > MAXIMUM_ALLOWED_FAILED_ATTEMPTS){
-      Serial.println("Max failed attempts reached");
-      for(;;);
-      // Handle error
-    }
-  }
-
-
-  /* if(scheduler_result != STATE_OK){
-    Serial.println("Failed reading cell");
-    for(;;);
-    // Handle error
-  } */
-
-  switch (local_state.current_state) {
+  switch (current_state) {
     case FSM_START_UP:
       result = fsm_start_up();
       break;
@@ -142,7 +91,44 @@ void loop() {
 
 // 00 - WIP
 
+fsm_state_t run_scheduled_tasks(const uint32_t now){
+  internal_state_t local_state = {};
+  system_scheduling_t local_timers = {};
+  uint8_t failed_attempts = 0U;
 
+  if(system_get_loop_state(&local_state) != STATE_OK){   // Create local copy of system state
+    Serial.println("Error getting loop state");
+    return FSM_FAILURE_RECOVERABLE;
+  }
+  
+  if(system_get_timer_state(&local_timers) != STATE_OK){
+    Serial.println("Error getting timer state");
+    return FSM_FAILURE_RECOVERABLE;
+  }
+
+  if(scheduler_led_flash(now, local_timers.main_led_flash_ms, local_state.main_led_on) != STATE_OK){
+    Serial.println("LED flash failure");
+    return FSM_FAILURE_RECOVERABLE;
+  }
+
+  if(scheduler_adc_health_check(now, local_timers.adc_function_check_ms) != STATE_OK){
+    Serial.println("ADC health check scheduler failed");
+    return FSM_FAILURE_RECOVERABLE;
+  }
+
+  if(scheduler_new_cell_read(now) != STATE_OK){
+    if(adc_get_failed_attempts(&failed_attempts) != ADC_STATUS_OK){
+      Serial.println("Failure getting failed_attempts");
+      return FSM_FAILURE_RECOVERABLE;
+    }
+    if(failed_attempts > MAXIMUM_ALLOWED_FAILED_ATTEMPTS){
+      Serial.println("Max failed attempts reached");
+      return FSM_FAILURE_RECOVERABLE;
+    }
+  }
+
+  return local_state.current_state;
+}
 
 
 
@@ -379,8 +365,6 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     // END OF SECTION
 
     
-  } else {
-    return STATE_TASK_NOT_SCHEDULED;
   }
   return STATE_OK;
 }
