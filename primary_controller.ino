@@ -90,7 +90,62 @@ void loop() {
 
 // 00 - WIP
 
+sensor_vote_result_t get_voted_sensor(const uint16_t cells_raw[], uint16_t *const voted_ppo2){
+  if((voted_ppo2 == NULL) || (cells_raw == NULL)){
+    return SENSOR_FAULT;
+  }
 
+  uint16_t readings[THREE_CELLS] = {0U};
+  const uint8_t SENSOR_0 = 0U;
+  const uint8_t SENSOR_1 = 1U;
+  const uint8_t SENSOR_2 = 2U;
+  const uint8_t AVERAGE_OF_3_SENSORS = 3U;
+  const uint8_t AVERAGE_OF_2_SENSORS = 2U;
+  uint16_t d01;
+  uint16_t d02;
+  uint16_t d12;
+
+  for (uint8_t channel = 0U; channel < THREE_CELLS; channel++){    
+    if(convert_raw_to_ppo2(cells_raw[channel], channel, &readings[channel]) != STATE_OK){
+      return SENSOR_FAULT;
+    }
+  }
+  d01 = diff_u16(readings[SENSOR_0], readings[SENSOR_1]);
+  d02 = diff_u16(readings[SENSOR_0], readings[SENSOR_2]);
+  d12 = diff_u16(readings[SENSOR_1], readings[SENSOR_2]);
+  if ((d01 <= MAX_DEVIATION_FROM_SETPOINT) && (d02 <= MAX_DEVIATION_FROM_SETPOINT) && (d12 <= MAX_DEVIATION_FROM_SETPOINT)){
+    *voted_ppo2 = (uint16_t)((readings[SENSOR_0] + readings[SENSOR_1] + readings[SENSOR_2]) / AVERAGE_OF_3_SENSORS);
+    return SENSOR_ALL_VALID;
+  }
+
+  uint8_t pair_a;
+  uint8_t pair_b;
+  sensor_vote_result_t rejected;
+  uint16_t min_deviation;
+
+  pair_a = SENSOR_0;
+  pair_b = SENSOR_1;
+  rejected = SENSOR_2_REJECTED;
+  min_deviation = d01;
+  if(d02 < min_deviation){
+    pair_a = SENSOR_0;
+    pair_b = SENSOR_2;
+    rejected = SENSOR_1_REJECTED;
+    min_deviation = d02;
+  }
+  if(d12 < min_deviation){
+    pair_a = SENSOR_1;
+    pair_b = SENSOR_2;
+    rejected = SENSOR_0_REJECTED;
+    min_deviation = d12;
+  }
+  *voted_ppo2 = (uint16_t)((readings[pair_a] + readings[pair_b]) / AVERAGE_OF_2_SENSORS);
+  return rejected;
+}
+
+static uint16_t diff_u16(const uint16_t a, const uint16_t b){
+  return (a > b) ? (a - b) : (b - a);
+}
 
 
 
