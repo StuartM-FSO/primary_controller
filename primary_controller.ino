@@ -7,6 +7,16 @@
 #include "format_for_print.h"
 #include "eeprom_hal.h"
 
+typedef enum {
+  SENSOR_0_REJECTED = 0U,
+  SENSOR_1_REJECTED = 1U,
+  SENSOR_2_REJECTED = 2U,
+  SENSOR_ALL_VALID  = 3U,
+  SENSOR_FAULT      = 4U,
+  SENSOR_UNINITIALISED = 5U,
+  SENSOR_COUNT_END // Do not add types beyond this
+} sensor_vote_result_t;
+
 constexpr uint32_t INTERVAL_CELL_READ_MS = 1000U;
 constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
 constexpr uint32_t INTERVAL_ADC_CHECK_MS = 1000U;
@@ -14,6 +24,7 @@ constexpr uint32_t INTERVAL_CAL_WAIT_BEFORE_WRITE_MS = 3000U;
 constexpr uint8_t THREE_CELLS = 3U;
 constexpr uint16_t CALIBRATION_PPO2x1000 = 970U;
 constexpr uint8_t MAXIMUM_ALLOWED_FAILED_ATTEMPTS = 10U;
+constexpr uint16_t MAX_DEVIATION_FROM_SETPOINT = 100U;
 
 constexpr uint8_t SCREEN_LINE_PPO2 = 0U;
 constexpr uint8_t SCREEN_LINE_MV = 8U;
