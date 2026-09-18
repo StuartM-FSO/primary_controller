@@ -4,6 +4,7 @@
 
 #include <Arduino.h>
 #include <stdint.h>
+#include "shared.h"
 
 
 typedef enum{
@@ -37,6 +38,8 @@ typedef struct{
   bool display_changed;
   fsm_state_t current_state;
   uint16_t reference_reading[3U];
+  sensor_vote_result_t voted_sensor;
+  uint16_t voted_ppo2;
 } internal_state_t;
 
 typedef struct{
@@ -60,5 +63,6 @@ system_state_t system_set_main_led_on(bool led_on);
 system_state_t system_set_calibration_button_pushed(const uint32_t now);
 system_state_t system_set_reference_reading(uint16_t * const reference_reading);
 system_state_t system_get_reference_reading(uint16_t * const reference_reading);
+system_state_t system_set_voted(const sensor_vote_result_t voted_sensor, const uint16_t voted_ppo2);
 
 #endif

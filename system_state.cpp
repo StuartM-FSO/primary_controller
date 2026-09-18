@@ -22,6 +22,8 @@ system_state_t system_init(void){
   state.main_led_on = false;
   state.adc_online = false;
   state.display_changed = true;
+  state.voted_ppo2 = 0U;
+  state.voted_sensor = SENSOR_UNINITIALISED;
 
   timer_state.adc_function_check_ms = 0U;
   timer_state.calibration_button_pushed_ms;
@@ -55,6 +57,8 @@ system_state_t system_get_loop_state(internal_state_t *local_state){
   local_state->adc_online = state.adc_online;
   local_state->display_changed = state.display_changed;
   local_state->main_led_on = state.main_led_on;
+  local_state->voted_ppo2 = state.voted_ppo2;
+  local_state->voted_sensor = state.voted_sensor;
   return STATE_OK;
 }
 
@@ -151,6 +155,19 @@ system_state_t system_get_reference_reading(uint16_t * const reference_reading){
   for(uint8_t channel = 0U; channel < 3U; channel++){
     reference_reading[channel] = state.reference_reading[channel];
   }
+  return STATE_OK;
+}
+
+system_state_t system_set_voted(const sensor_vote_result_t voted_sensor, const uint16_t voted_ppo2){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+  if(voted_sensor >= SENSOR_COUNT_END){
+    return STATE_INVALID_PARAMETER;
+  }
+
+  state.voted_ppo2 = voted_ppo2;
+  state.voted_sensor = voted_sensor;
   return STATE_OK;
 }
 

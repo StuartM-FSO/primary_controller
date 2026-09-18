@@ -6,16 +6,7 @@
 #include "gpio_hal.h"
 #include "format_for_print.h"
 #include "eeprom_hal.h"
-
-typedef enum {
-  SENSOR_0_REJECTED = 0U,
-  SENSOR_1_REJECTED = 1U,
-  SENSOR_2_REJECTED = 2U,
-  SENSOR_ALL_VALID  = 3U,
-  SENSOR_FAULT      = 4U,
-  SENSOR_UNINITIALISED = 5U,
-  SENSOR_COUNT_END // Do not add types beyond this
-} sensor_vote_result_t;
+#include "shared.h"
 
 constexpr uint32_t INTERVAL_CELL_READ_MS = 1000U;
 constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
@@ -416,6 +407,10 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
   }
 
   if(has_timer_elapsed(now, local_timers.cell_read_ms, INTERVAL_CELL_READ_MS)){
+    uint16_t cell_read_filtered[THREE_CELLS] = {};
+    uint16_t voted_ppo2 = 0U;
+    sensor_vote_result_t voted_cell = SENSOR_UNINITIALISED;
+
     if(system_set_cell_read_time(now) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
@@ -425,6 +420,14 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     if(adc_read_cells() != ADC_STATUS_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
+    if(adc_get_last_good_cell_read(cell_read_filtered) != ADC_STATUS_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    voted_cell = get_voted_sensor(cell_read_filtered, &voted_ppo2);
+    if(system_set_voted(voted_cell, voted_ppo2) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    
     
     // DELETE FOR PRODUCTION
     if(adc_get_last_good_cell_read(filtered_reading) != ADC_STATUS_OK){
@@ -444,6 +447,10 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
       Serial.print("mV ");
     }
     Serial.println();
+    Serial.print("Vote result: ");
+    Serial.print(voted_cell);
+    Serial.print(" : ");
+    Serial.println(voted_ppo2);
     // END OF SECTION
 
     
