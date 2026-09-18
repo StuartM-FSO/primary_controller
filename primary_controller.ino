@@ -590,6 +590,11 @@ system_state_t screen_print_ppo2(void){
   uint16_t current_read[THREE_CELLS] = {};
   uint16_t current_ppo2 = 0U;
   char buffer[FORMATTING_PPO2_STR_LEN] = {};
+  internal_state_t local_state = {};
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
 
   if(adc_get_last_good_cell_read(current_read) != ADC_STATUS_OK){
     return STATE_FAILED_FUNCTION_CALL;
@@ -600,8 +605,12 @@ system_state_t screen_print_ppo2(void){
     if(convert_raw_to_ppo2(current_read[channel], channel, &current_ppo2) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
+    if((uint8_t)local_state.voted_sensor == channel){
+      display_set_colour(DISPLAY_BLACK, DISPLAY_WHITE);
+    }
     format_ppo2_to_text(current_ppo2, buffer);
     display_print(buffer);
+    display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
     display_print(" ");
   }
   return STATE_OK;
