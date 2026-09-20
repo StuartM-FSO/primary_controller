@@ -31,7 +31,7 @@ void setup() {
 
   bool proceed = true;
 
-  if(system_init() != STATE_OK){
+  if(system_init(SYSTEM_LOW_OUTPUT_CELL) != STATE_OK){
     proceed = false;
   } else if (adc_init() != ADC_STATUS_OK){
     proceed = false;

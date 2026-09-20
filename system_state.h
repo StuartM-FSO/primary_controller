@@ -31,6 +31,12 @@ typedef enum{
   FSM_END_COUNT         // Do not use or add states beyond
 } fsm_state_t;
 
+typedef enum{
+  SYSTEM_LOW_OUTPUT_CELL,
+  SYSTEM_HIGH_OUTPUT_CELL,
+  SYSTEM_CELL_END_COUNT   // Do not use or add states beyond
+} system_cell_type_t;
+
 typedef struct{
   bool initialised;
   bool main_led_on;
@@ -40,6 +46,7 @@ typedef struct{
   uint16_t reference_reading[3U];
   sensor_vote_result_t voted_sensor;
   uint16_t voted_ppo2;
+  system_cell_type_t cell_type;
 } internal_state_t;
 
 typedef struct{
@@ -49,7 +56,7 @@ typedef struct{
   uint32_t calibration_button_pushed_ms;
 } system_scheduling_t;
 
-system_state_t system_init(void);
+system_state_t system_init(system_cell_type_t cell_type);
 
 system_state_t system_get_loop_state(internal_state_t *local_state);
 system_state_t system_get_timer_state(system_scheduling_t *local_state);

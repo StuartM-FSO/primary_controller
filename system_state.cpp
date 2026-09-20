@@ -13,9 +13,12 @@ static system_scheduling_t timer_state = {};
 
 // Public API
 
-system_state_t system_init(void){
+system_state_t system_init(system_cell_type_t cell_type){
   if(state.initialised){
     return STATE_OK;
+  }
+  if(cell_type >= SYSTEM_CELL_END_COUNT){
+    return STATE_INVALID_PARAMETER;
   }
 
   state.current_state = FSM_START_UP;
