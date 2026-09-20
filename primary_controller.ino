@@ -112,7 +112,7 @@ system_state_t prepare_payload(){
   ppo2_t local_ppo2_state = {};
   uint16_t ppo2_x1000[THREE_CELLS] = {0U};
   operational_state_t operational_state = OPSTATE_DATAMODE;
-  sensor_vote_result_t voted = SENSOR_0_REJECTED;
+  sensor_vote_result_t voted = SENSOR_UNINITIALISED;
   switchstate_t slider = gpio_slide_switch_on();
 
   if(slider == SWITCH_ON){
@@ -126,6 +126,8 @@ system_state_t prepare_payload(){
   if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
+
+
 
   host_load_packet(local_ppo2_state.ppo2_x1000, operational_state, voted);
   return STATE_OK;
@@ -186,8 +188,7 @@ sensor_vote_result_t get_voted_sensor(const uint16_t cells_raw[], uint16_t *cons
   if((voted_ppo2 == NULL) || (cells_raw == NULL)){
     return SENSOR_FAULT;
   }
-
-  uint16_t readings[THREE_CELLS] = {0U};
+  
   const uint8_t SENSOR_0 = 0U;
   const uint8_t SENSOR_1 = 1U;
   const uint8_t SENSOR_2 = 2U;
@@ -196,17 +197,17 @@ sensor_vote_result_t get_voted_sensor(const uint16_t cells_raw[], uint16_t *cons
   uint16_t d01;
   uint16_t d02;
   uint16_t d12;
+  ppo2_t local_ppo2_state = {};
 
-  for (uint8_t channel = 0U; channel < THREE_CELLS; channel++){    
-    if(convert_raw_to_ppo2(cells_raw[channel], channel, &readings[channel]) != STATE_OK){
-      return SENSOR_FAULT;
-    }
+  if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
+    return SENSOR_FAULT;
   }
-  d01 = diff_u16(readings[SENSOR_0], readings[SENSOR_1]);
-  d02 = diff_u16(readings[SENSOR_0], readings[SENSOR_2]);
-  d12 = diff_u16(readings[SENSOR_1], readings[SENSOR_2]);
+
+  d01 = diff_u16(local_ppo2_state.ppo2_x1000[SENSOR_0], local_ppo2_state.ppo2_x1000[SENSOR_1]);
+  d02 = diff_u16(local_ppo2_state.ppo2_x1000[SENSOR_0], local_ppo2_state.ppo2_x1000[SENSOR_2]);
+  d12 = diff_u16(local_ppo2_state.ppo2_x1000[SENSOR_1], local_ppo2_state.ppo2_x1000[SENSOR_2]);
   if ((d01 <= MAX_DEVIATION_FROM_SETPOINT) && (d02 <= MAX_DEVIATION_FROM_SETPOINT) && (d12 <= MAX_DEVIATION_FROM_SETPOINT)){
-    *voted_ppo2 = (uint16_t)((readings[SENSOR_0] + readings[SENSOR_1] + readings[SENSOR_2]) / AVERAGE_OF_3_SENSORS);
+    *voted_ppo2 = (uint16_t)((local_ppo2_state.ppo2_x1000[SENSOR_0] + local_ppo2_state.ppo2_x1000[SENSOR_1] + local_ppo2_state.ppo2_x1000[SENSOR_2]) / AVERAGE_OF_3_SENSORS);
     return SENSOR_ALL_VALID;
   }
 
@@ -231,7 +232,7 @@ sensor_vote_result_t get_voted_sensor(const uint16_t cells_raw[], uint16_t *cons
     rejected = SENSOR_0_REJECTED;
     min_deviation = d12;
   }
-  *voted_ppo2 = (uint16_t)((readings[pair_a] + readings[pair_b]) / AVERAGE_OF_2_SENSORS);
+  *voted_ppo2 = (uint16_t)((local_ppo2_state.ppo2_x1000[pair_a] + local_ppo2_state.ppo2_x1000[pair_b]) / AVERAGE_OF_2_SENSORS);
   return rejected;
 }
 
@@ -750,24 +751,26 @@ system_state_t screen_print_ppo2(void){
   uint16_t current_ppo2 = 0U;
   char buffer[FORMATTING_PPO2_STR_LEN] = {};
   internal_state_t local_state = {};
+  ppo2_t local_ppo2_state = {};
 
   if(system_get_loop_state(&local_state) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
-  if(adc_get_last_good_cell_read(current_read) != ADC_STATUS_OK){
+  if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
+  /* if(adc_get_last_good_cell_read(current_read) != ADC_STATUS_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  } */
+
   display_set_cursor(0, SCREEN_LINE_PPO2);
   for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
-    if(convert_raw_to_ppo2(current_read[channel], channel, &current_ppo2) != STATE_OK){
-      return STATE_FAILED_FUNCTION_CALL;
-    }
     if((uint8_t)local_state.voted_sensor == channel){
       display_set_colour(DISPLAY_BLACK, DISPLAY_WHITE);
     }
-    format_ppo2_to_text(current_ppo2, buffer);
+    format_ppo2_to_text(local_ppo2_state.ppo2_x1000[channel], buffer);
     display_print(buffer);
     display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
     display_print(" ");
