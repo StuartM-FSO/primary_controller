@@ -109,6 +109,7 @@ void loop() {
 // 00 - WIP
 
 system_state_t prepare_payload(){
+  ppo2_t local_ppo2_state = {};
   uint16_t ppo2_x1000[THREE_CELLS] = {0U};
   operational_state_t operational_state = OPSTATE_DATAMODE;
   sensor_vote_result_t voted = SENSOR_0_REJECTED;
@@ -122,7 +123,11 @@ system_state_t prepare_payload(){
     return STATE_INVALID_CONDITION;
   }
 
-  host_load_packet(ppo2_x1000, operational_state, voted);
+  if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  host_load_packet(local_ppo2_state.ppo2_x1000, operational_state, voted);
   return STATE_OK;
 }
 
