@@ -7,6 +7,7 @@
 #include "format_for_print.h"
 #include "eeprom_hal.h"
 #include "shared.h"
+#include "comms_layer_host.h"
 
 constexpr uint32_t INTERVAL_CELL_READ_MS = 1000U;
 constexpr uint32_t INTERVAL_MAIN_LED_FLASH = 1000U;
@@ -53,7 +54,10 @@ void setup() {
     proceed = false;
   } else if(eeprom_init() != MEM_OK){
     proceed = false;
-  } else {}
+  } else if(host_init() != HOST_OK){
+    proceed = false;
+  }
+  else {}
 
   if(!proceed){
     Serial.println("Start up failed");
