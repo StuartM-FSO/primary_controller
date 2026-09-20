@@ -180,8 +180,8 @@ bool are_all_cells_in_range_for_calibration(uint16_t cells[]){
   return true;
 }
 
-sensor_vote_result_t get_voted_sensor(const uint16_t cells_raw[], uint16_t *const voted_ppo2){
-  if((voted_ppo2 == NULL) || (cells_raw == NULL)){
+sensor_vote_result_t get_voted_sensor(uint16_t *const voted_ppo2){
+  if((voted_ppo2 == NULL)){
     return SENSOR_FAULT;
   }
   
@@ -541,7 +541,7 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     if(adc_get_last_good_cell_read(cell_read_filtered) != ADC_STATUS_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
-    voted_cell = get_voted_sensor(cell_read_filtered, &voted_ppo2);
+    voted_cell = get_voted_sensor(&voted_ppo2);
     if(system_set_voted(voted_cell, voted_ppo2) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
