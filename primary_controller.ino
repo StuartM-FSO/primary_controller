@@ -16,6 +16,10 @@ constexpr uint8_t THREE_CELLS = 3U;
 constexpr uint16_t CALIBRATION_PPO2x1000 = 970U;
 constexpr uint8_t MAXIMUM_ALLOWED_FAILED_ATTEMPTS = 10U;
 constexpr uint16_t MAX_DEVIATION_FROM_SETPOINT = 100U;
+constexpr uint16_t LOW_OUTPUT_CALIBRATION_ACCEPTABLE_MIN_MV = 33U; // Limit to be established through testing
+constexpr uint16_t LOW_OUTPUT_CALIBRATION_ACCEPTABLE_MAX_MV = 76U; // Limit to be established through testing
+constexpr uint16_t HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MIN_MV = 71U; // Limit to be established through testing
+constexpr uint16_t HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MAX_MV = 143U; // Limit to be established through testing
 
 constexpr uint8_t SCREEN_LINE_PPO2 = 0U;
 constexpr uint8_t SCREEN_LINE_MV = 8U;
@@ -91,6 +95,33 @@ void loop() {
 }
 
 // 00 - WIP
+
+bool are_all_cells_in_range_for_calibration(uint16_t cells[]){
+  uint16_t low_limit_mv = 0U;
+  uint16_t high_limit_mv = 0U;
+  uint16_t converted_mv = 0U;
+  internal_state_t local_state = {};
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    return false;
+  }
+
+  if(local_state.cell_type == SYSTEM_LOW_OUTPUT_CELL){
+    low_limit_mv = LOW_OUTPUT_CALIBRATION_ACCEPTABLE_MIN_MV;
+    high_limit_mv = LOW_OUTPUT_CALIBRATION_ACCEPTABLE_MAX_MV;
+  } else {
+    low_limit_mv = HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MIN_MV;
+    high_limit_mv = HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MAX_MV;
+  }
+
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    converted_mv = adc_convert_raw_to_mV(cells[channel]);
+    if((converted_mv < low_limit_mv) || (converted_mv > high_limit_mv)){
+      return false;
+    }
+  }
+  return true;
+}
 
 sensor_vote_result_t get_voted_sensor(const uint16_t cells_raw[], uint16_t *const voted_ppo2){
   if((voted_ppo2 == NULL) || (cells_raw == NULL)){
