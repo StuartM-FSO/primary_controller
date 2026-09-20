@@ -27,7 +27,7 @@ constexpr uint8_t SCREEN_LINE_MV = 8U;
 constexpr uint8_t SCREEN_COL_MV = 0U;
 constexpr uint8_t SCREEN_LINE_STATUS = 24U;
 constexpr uint8_t SCREEN_COL_STATUS = 0U;
-constexpr uint8_t SCREEN_LINE_BATTERY = 32U;
+constexpr uint8_t SCREEN_LINE_BATTERY = 16U;
 constexpr uint8_t SCREEN_COL_BATTERY = 0U;
 
 void setup() {
@@ -725,7 +725,7 @@ system_state_t screen_print_battery(void){
   }
   format_mV_to_V(local_state.battery_mv, buffer);
   
-  display_set_cursor(0,16);
+  display_set_cursor(SCREEN_COL_BATTERY, SCREEN_LINE_BATTERY);
   display_print("Battery: ");
   display_print(buffer);
   return STATE_OK;
