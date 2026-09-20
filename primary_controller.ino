@@ -23,6 +23,7 @@ constexpr uint16_t HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MAX_MV = 143U; // Limit to
 
 constexpr uint8_t SCREEN_LINE_PPO2 = 0U;
 constexpr uint8_t SCREEN_LINE_MV = 8U;
+constexpr uint8_t SCREEN_LINE_STATUS = 24U;
 
 void setup() {
   Serial.begin(115200);
@@ -216,6 +217,8 @@ system_state_t fsm_dive_mode(void){
 system_state_t fsm_data_mode(const uint32_t now){
   internal_state_t local_state = {};
   uint32_t time_stamp = 0U;
+  bool calibration_available = false;
+  uint16_t cells_filtered[THREE_CELLS] = {};
 
   if(system_get_loop_state(&local_state) != STATE_OK){
     Serial.println("Failed getting state, fsm_data_mode");
@@ -229,6 +232,11 @@ system_state_t fsm_data_mode(const uint32_t now){
     return STATE_OK;
   }
 
+  if(adc_get_last_good_cell_read(cells_filtered) != ADC_STATUS_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  calibration_available = are_all_cells_in_range_for_calibration(cells_filtered);
+
   if(gpio_slide_switch_on() == SWITCH_OFF){
     if(screen_off() != STATE_OK){
       Serial.println("Error turning off screen in data mode");
@@ -241,12 +249,12 @@ system_state_t fsm_data_mode(const uint32_t now){
     return STATE_OK;
   }
 
-  if(screen_data_mode() != STATE_OK){
+  if(screen_data_mode(calibration_available) != STATE_OK){
     Serial.println("data mode screen write failed");
     return STATE_FAILED_FUNCTION_CALL;
   }
 
-  if(gpio_momentary_pushed() == SWITCH_ON){
+  if((gpio_momentary_pushed() == SWITCH_ON) && (calibration_available)){
     Serial.println("Switching to cal mode");
     if(system_set_calibration_button_pushed(now) != STATE_OK){
       Serial.println("Error writing cal button timer");
@@ -530,7 +538,7 @@ system_state_t scheduler_led_flash(const uint32_t now, const uint32_t last_time,
 
 // 03 - Display
 
-system_state_t screen_data_mode(void){
+system_state_t screen_data_mode(const bool calibration_available){
   display_font_size(1);
   display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
   display_clear();
@@ -540,6 +548,10 @@ system_state_t screen_data_mode(void){
   }
   
   if(screen_print_mv() != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  if(screen_print_status(calibration_available) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
   
@@ -623,6 +635,16 @@ system_state_t screen_print_mv(void){
     display_print("mV");
     display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
     display_print(" ");
+  }
+  return STATE_OK;
+}
+
+system_state_t screen_print_status(const bool calibration_available){
+  display_set_cursor(0u, SCREEN_LINE_STATUS);
+  if(calibration_available){
+    display_print("Calibrate now?");
+  } else{
+    display_print("Cal unavailable");
   }
   return STATE_OK;
 }
