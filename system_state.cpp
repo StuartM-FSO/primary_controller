@@ -62,6 +62,7 @@ system_state_t system_get_loop_state(internal_state_t *local_state){
   local_state->main_led_on = state.main_led_on;
   local_state->voted_ppo2 = state.voted_ppo2;
   local_state->voted_sensor = state.voted_sensor;
+  local_state->cell_type = state.cell_type
   return STATE_OK;
 }
 
