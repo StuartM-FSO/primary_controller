@@ -1,14 +1,15 @@
-#include <ctime>
-#include "IRQManager.h"
+#include "api/Common.h"
 #include <sys/_stdint.h>
 #include <cstddef>
 #include <stdint.h>
 #include "system_state.h"
 
 
-static internal_state_t state = {};
 
+static internal_state_t state = {};
 static system_scheduling_t timer_state = {};
+static ppo2_t last_read_ppo2 = {};
+
 
 
 // Public API
@@ -34,6 +35,11 @@ system_state_t system_init(system_cell_type_t cell_type){
   timer_state.cell_read_ms = 0U;
   timer_state.main_led_flash_ms = 0U;
   timer_state.read_battery_ms = 0U;
+
+  last_read_ppo2.timestamp_ms = 0U;
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    last_read_ppo2.ppo2_x1000[channel] = 0U;
+  }
 
   state.initialised = true;
   return STATE_OK;
@@ -199,6 +205,31 @@ system_state_t system_set_battery_mv(const uint16_t battery_mv){
     return STATE_UNINITIALISED;
   }
   state.battery_mv = battery_mv;
+  return STATE_OK;
+}
+
+system_state_t system_get_ppo2(ppo2_t * const ppo2){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+  if(ppo2 == NULL){
+    return STATE_INVALID_PARAMETER;
+  }
+  ppo2->timestamp_ms = last_read_ppo2.timestamp_ms;
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    ppo2->ppo2_x1000[channel] = last_read_ppo2.ppo2_x1000[channel];
+  }
+  return STATE_OK;
+}
+
+system_state_t system_set_ppo2(uint16_t * const ppo2_x1000){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+  last_read_ppo2.timestamp_ms = millis();
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    last_read_ppo2.ppo2_x1000[channel] = ppo2_x1000[channel];
+  }
   return STATE_OK;
 }
 

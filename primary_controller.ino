@@ -108,6 +108,38 @@ void loop() {
 
 // 00 - WIP
 
+system_state_t prepare_payload(){
+  uint16_t ppo2_x1000[THREE_CELLS] = {0U};
+  operational_state_t operational_state = OPSTATE_DATAMODE;
+  sensor_vote_result_t voted = SENSOR_0_REJECTED;
+  switchstate_t slider = gpio_slide_switch_on();
+
+  if(slider == SWITCH_ON){
+    operational_state = OPSTATE_DATAMODE;
+  } else if(slider == SWITCH_OFF){
+    operational_state = OPSTATE_DIVEMODE;
+  } else {
+    return STATE_INVALID_CONDITION;
+  }
+
+  host_load_packet(ppo2_x1000, operational_state, voted);
+  return STATE_OK;
+}
+
+system_state_t set_state_ppo2_x1000(uint16_t cells_filtered[]){
+  uint16_t ppo2_x1000[THREE_CELLS] = {0U};
+
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    if(convert_raw_to_ppo2(cells_filtered[channel], channel, &ppo2_x1000[channel]) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+  }
+  if(system_set_ppo2(ppo2_x1000) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  return STATE_OK;
+}
+
 uint16_t get_battery_mv(void){
   const uint32_t REFERENCE_MV = 3300U;
   const uint32_t DIVIDER_NUM = 2U;
@@ -492,7 +524,7 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     uint16_t voted_ppo2 = 0U;
     sensor_vote_result_t voted_cell = SENSOR_UNINITIALISED;
     operational_state_t op_state = OPSTATE_DATAMODE;
-    uint16_t cells_ppo2_x1000[THREE_CELLS] = {1000, 1100, 1200};
+    uint16_t cells_ppo2_x1000[THREE_CELLS] = {};
 
 
     if(system_set_cell_read_time(now) != STATE_OK){
@@ -511,10 +543,16 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     if(system_set_voted(voted_cell, voted_ppo2) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
+    if(set_state_ppo2_x1000(cell_read_filtered) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
     if(system_display_requires_update() != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
-    if(host_load_packet(cells_ppo2_x1000, op_state, SENSOR_ALL_VALID) != HOST_OK){
+    
+    // !!!
+
+    if(prepare_payload() != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
 

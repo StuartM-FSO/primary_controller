@@ -58,6 +58,11 @@ typedef struct{
   uint32_t read_battery_ms;
 } system_scheduling_t;
 
+typedef struct{
+  uint16_t ppo2_x1000[THREE_CELLS];
+  uint32_t timestamp_ms;
+} ppo2_t;
+
 system_state_t system_init(system_cell_type_t cell_type);
 
 system_state_t system_get_loop_state(internal_state_t *local_state);
@@ -77,5 +82,8 @@ system_state_t system_set_battery_mv(const uint16_t battery_mv);
 
 system_state_t system_display_has_been_updated(void);
 system_state_t system_display_requires_update(void);
+
+system_state_t system_get_ppo2(ppo2_t * const ppo2);
+system_state_t system_set_ppo2(uint16_t * const ppo2_x1000);
 
 #endif
