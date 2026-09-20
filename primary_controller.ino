@@ -451,6 +451,9 @@ system_state_t scheduler_read_battery(const uint32_t now, const uint32_t last_ti
     if(system_set_battery_read_time(now) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
+    if(system_set_battery_mv(battery_mv) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
   }
   return STATE_OK;
 }

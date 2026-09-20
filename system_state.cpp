@@ -27,6 +27,7 @@ system_state_t system_init(system_cell_type_t cell_type){
   state.display_requires_update = true;
   state.voted_ppo2 = 0U;
   state.voted_sensor = SENSOR_UNINITIALISED;
+  state.battery_mv = 0U;
 
   timer_state.adc_function_check_ms = 0U;
   timer_state.calibration_button_pushed_ms;
@@ -65,6 +66,7 @@ system_state_t system_get_loop_state(internal_state_t *local_state){
   local_state->voted_ppo2 = state.voted_ppo2;
   local_state->voted_sensor = state.voted_sensor;
   local_state->cell_type = state.cell_type;
+  local_state->battery_mv = state.battery_mv;
   return STATE_OK;
 }
 
@@ -192,6 +194,13 @@ system_state_t system_set_battery_read_time(const uint32_t now){
   return STATE_OK;
 }
 
+system_state_t system_set_battery_mv(const uint32_t battery_mv){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+  state.battery_mv = battery_mv;
+  return STATE_OK;
+}
 
 
 // Private
