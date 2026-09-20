@@ -32,6 +32,7 @@ system_state_t system_init(system_cell_type_t cell_type){
   timer_state.calibration_button_pushed_ms;
   timer_state.cell_read_ms = 0U;
   timer_state.main_led_flash_ms = 0U;
+  timer_state.read_battery_ms = 0U;
 
   state.initialised = true;
   return STATE_OK;
@@ -48,6 +49,7 @@ system_state_t system_get_timer_state(system_scheduling_t *local_state){
   local_state->calibration_button_pushed_ms = timer_state.calibration_button_pushed_ms;
   local_state->cell_read_ms = timer_state.cell_read_ms;
   local_state->main_led_flash_ms = timer_state.main_led_flash_ms;
+  local_state->read_battery_ms = timer_state.read_battery_ms;
   return STATE_OK;
 }
 
@@ -179,6 +181,14 @@ system_state_t system_display_requires_update(void){
     return STATE_UNINITIALISED;
   }
   state.display_requires_update = true;
+  return STATE_OK;
+}
+
+system_state_t system_set_battery_read_time(const uint32_t now){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+  timer_state.read_battery_ms = now;
   return STATE_OK;
 }
 

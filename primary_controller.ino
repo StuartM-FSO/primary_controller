@@ -33,6 +33,8 @@ void setup() {
   Serial.println("Starting...");
 
   Wire.begin();
+  pinMode(BAT_READ_EN, OUTPUT);
+  digitalWrite(BAT_READ_EN, HIGH);
 
   bool proceed = true;
 
@@ -96,6 +98,15 @@ void loop() {
 }
 
 // 00 - WIP
+
+uint32_t get_battery_mv(void){
+  const uint32_t REFERENCE_MV = 3300U;
+  const uint32_t DIVIDER_NUM = 2U;
+  const uint32_t ADC_MAX = 1023U;
+
+  uint32_t raw_value = analogRead(BAT_DET_PIN);
+  return (raw_value * REFERENCE_MV * DIVIDER_NUM + ADC_MAX / 2) / ADC_MAX;
+}
 
 bool are_all_cells_in_range_for_calibration(uint16_t cells[]){
   uint16_t low_limit_mv = 0U;
@@ -404,6 +415,10 @@ fsm_state_t run_scheduled_tasks(const uint32_t now){
     return FSM_FAILURE_RECOVERABLE;
   }
 
+  if(scheduler_read_battery(now, local_timers.read_battery_ms) != STATE_OK){
+    return FSM_FAILURE_RECOVERABLE;
+  }
+
   if(scheduler_led_flash(now, local_timers.main_led_flash_ms, local_state.main_led_on) != STATE_OK){
     Serial.println("LED flash failure");
     return FSM_FAILURE_RECOVERABLE;
@@ -426,6 +441,18 @@ fsm_state_t run_scheduled_tasks(const uint32_t now){
   }
 
   return local_state.current_state;
+}
+
+system_state_t scheduler_read_battery(const uint32_t now, const uint32_t last_time){
+  if(has_timer_elapsed(now, last_time, 1000u)){
+    uint32_t battery_mv = get_battery_mv();
+    Serial.print("Battery mV: ");
+    Serial.println(battery_mv);
+    if(system_set_battery_read_time(now) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+  }
+  return STATE_OK;
 }
 
 system_state_t scheduler_new_cell_read(const uint32_t now){
