@@ -249,10 +249,15 @@ system_state_t fsm_data_mode(const uint32_t now){
     return STATE_OK;
   }
 
-  if(screen_data_mode(calibration_available) != STATE_OK){
-    Serial.println("data mode screen write failed");
-    return STATE_FAILED_FUNCTION_CALL;
+  if(local_state.display_requires_update){
+    if(screen_data_mode(calibration_available) != STATE_OK){
+      Serial.println("data mode screen write failed");
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+    system_display_has_been_updated();
   }
+
+  
 
   if((gpio_momentary_pushed() == SWITCH_ON) && (calibration_available)){
     Serial.println("Switching to cal mode");
@@ -311,9 +316,6 @@ system_state_t fsm_calibration_wait(const uint32_t now){
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
-    if(system_set_display_changed(true) != STATE_OK){
-      return STATE_FAILED_FUNCTION_CALL;
-    }
     return STATE_OK;
   } else {
     return STATE_INVALID_CONDITION;
@@ -360,10 +362,6 @@ system_state_t fsm_calibration_write(void){
     }
 
     if(system_set_current_state(FSM_DATA_MODE) != STATE_OK){
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-    
-    if(system_set_display_changed(true) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
     
@@ -466,6 +464,9 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     if(system_set_voted(voted_cell, voted_ppo2) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
+    if(system_display_requires_update() != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
     
     
     // DELETE FOR PRODUCTION
@@ -566,10 +567,6 @@ system_state_t screen_off(void){
   display_clear();
   if(display_update() != DISPLAY_STATUS_OK){
     Serial.println("Error turning screen off");
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  if(system_set_display_changed(true) != STATE_OK){
-    Serial.println("Error writing state in screen off");
     return STATE_FAILED_FUNCTION_CALL;
   }
   return STATE_OK;

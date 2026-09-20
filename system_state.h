@@ -65,11 +65,13 @@ system_state_t system_set_main_led_timer(const uint32_t now);
 system_state_t system_set_adc_function_check_time(const uint32_t now);
 system_state_t system_set_adc_online(const bool adc_online);
 system_state_t system_set_current_state(const fsm_state_t current_state);
-system_state_t system_set_display_changed(const bool changed);
 system_state_t system_set_main_led_on(bool led_on);
 system_state_t system_set_calibration_button_pushed(const uint32_t now);
 system_state_t system_set_reference_reading(uint16_t * const reference_reading);
 system_state_t system_get_reference_reading(uint16_t * const reference_reading);
 system_state_t system_set_voted(const sensor_vote_result_t voted_sensor, const uint16_t voted_ppo2);
+
+system_state_t system_display_has_been_updated(void);
+system_state_t system_display_requires_update(void);
 
 #endif

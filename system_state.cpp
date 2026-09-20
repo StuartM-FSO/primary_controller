@@ -110,15 +110,6 @@ system_state_t system_set_adc_online(const bool adc_online){
   return STATE_OK;
 }
 
-system_state_t system_set_display_changed(const bool changed){
-  if(!state.initialised){
-    return STATE_UNINITIALISED;
-  }
-
-  state.display_requires_update = changed;
-  return STATE_OK;
-}
-
 system_state_t system_set_main_led_on(bool led_on){
   if(!state.initialised){
     return STATE_UNINITIALISED;
@@ -172,6 +163,22 @@ system_state_t system_set_voted(const sensor_vote_result_t voted_sensor, const u
 
   state.voted_ppo2 = voted_ppo2;
   state.voted_sensor = voted_sensor;
+  return STATE_OK;
+}
+
+system_state_t system_display_has_been_updated(void){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+  state.display_requires_update = false;
+  return STATE_OK;
+}
+
+system_state_t system_display_requires_update(void){
+  if(!state.initialised){
+    return STATE_UNINITIALISED;
+  }
+  state.display_requires_update = true;
   return STATE_OK;
 }
 
