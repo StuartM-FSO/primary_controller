@@ -449,6 +449,10 @@ fsm_state_t run_scheduled_tasks(const uint32_t now){
       return FSM_FAILURE_RECOVERABLE;
     }
   }
+  
+  if(host_run() != HOST_OK){
+    return FSM_FAILURE_RECOVERABLE;
+  }
 
   return local_state.current_state;
 }
@@ -487,6 +491,9 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     uint16_t cell_read_filtered[THREE_CELLS] = {};
     uint16_t voted_ppo2 = 0U;
     sensor_vote_result_t voted_cell = SENSOR_UNINITIALISED;
+    operational_state_t op_state = OPSTATE_DATAMODE;
+    uint16_t cells_ppo2_x1000[THREE_CELLS] = {1000, 1100, 1200};
+
 
     if(system_set_cell_read_time(now) != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
@@ -507,6 +514,11 @@ system_state_t scheduler_new_cell_read(const uint32_t now){
     if(system_display_requires_update() != STATE_OK){
       return STATE_FAILED_FUNCTION_CALL;
     }
+    if(host_load_packet(cells_ppo2_x1000, op_state, SENSOR_ALL_VALID) != HOST_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+
+  
     
     
     // DELETE FOR PRODUCTION
