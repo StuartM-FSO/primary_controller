@@ -711,8 +711,13 @@ system_state_t screen_print_mv(void){
   char buffer[FORMATTING_INTEGER_STR_LEN];
   uint16_t reading_raw[THREE_CELLS];
   internal_state_t local_state = {};
+  ppo2_t local_ppo2_state = {};
 
   if(system_get_loop_state(&local_state) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
@@ -724,7 +729,7 @@ system_state_t screen_print_mv(void){
   for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
     uint16_t reading_mv = adc_convert_raw_to_mV(reading_raw[channel]);
 
-    if(local_state.voted_sensor == channel){
+    if(local_ppo2_state.voted_sensor == channel){
       display_set_colour(DISPLAY_BLACK, DISPLAY_WHITE);
     }
     format_integer_for_display(reading_mv, buffer);
@@ -767,7 +772,7 @@ system_state_t screen_print_ppo2(void){
 
   display_set_cursor(0, SCREEN_LINE_PPO2);
   for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
-    if((uint8_t)local_state.voted_sensor == channel){
+    if((uint8_t)local_ppo2_state.voted_sensor == channel){
       display_set_colour(DISPLAY_BLACK, DISPLAY_WHITE);
     }
     format_ppo2_to_text(local_ppo2_state.ppo2_x1000[channel], buffer);
