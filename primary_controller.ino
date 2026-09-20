@@ -766,10 +766,6 @@ system_state_t screen_print_ppo2(void){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
-  /* if(adc_get_last_good_cell_read(current_read) != ADC_STATUS_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  } */
-
   display_set_cursor(0, SCREEN_LINE_PPO2);
   for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
     if((uint8_t)local_ppo2_state.voted_sensor == channel){

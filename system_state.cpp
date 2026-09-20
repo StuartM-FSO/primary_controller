@@ -26,7 +26,6 @@ system_state_t system_init(system_cell_type_t cell_type){
   state.main_led_on = false;
   state.adc_online = false;
   state.display_requires_update = true;
-  state.voted_ppo2 = 0U;
   state.battery_mv = 0U;
 
   timer_state.adc_function_check_ms = 0U;
@@ -40,6 +39,7 @@ system_state_t system_init(system_cell_type_t cell_type){
     last_read_ppo2.ppo2_x1000[channel] = 0U;
   }
   last_read_ppo2.voted_sensor = SENSOR_UNINITIALISED;
+  last_read_ppo2.voted_ppo2 = 0U;
 
   state.initialised = true;
   return STATE_OK;
@@ -69,7 +69,6 @@ system_state_t system_get_loop_state(internal_state_t *local_state){
   local_state->adc_online = state.adc_online;
   local_state->display_requires_update = state.display_requires_update;
   local_state->main_led_on = state.main_led_on;
-  local_state->voted_ppo2 = state.voted_ppo2;
   local_state->cell_type = state.cell_type;
   local_state->battery_mv = state.battery_mv;
   return STATE_OK;
@@ -170,7 +169,7 @@ system_state_t system_set_voted(const sensor_vote_result_t voted_sensor, const u
     return STATE_INVALID_PARAMETER;
   }
 
-  state.voted_ppo2 = voted_ppo2;
+  last_read_ppo2.voted_ppo2 = voted_ppo2;
   last_read_ppo2.voted_sensor = voted_sensor;
   return STATE_OK;
 }
@@ -219,6 +218,7 @@ system_state_t system_get_ppo2(ppo2_t * const ppo2){
     ppo2->ppo2_x1000[channel] = last_read_ppo2.ppo2_x1000[channel];
   }
   ppo2->voted_sensor = last_read_ppo2.voted_sensor;
+  ppo2->voted_ppo2 = last_read_ppo2.voted_ppo2;
   return STATE_OK;
 }
 

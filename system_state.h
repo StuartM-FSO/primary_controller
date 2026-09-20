@@ -44,7 +44,6 @@ typedef struct{
   bool display_requires_update;
   fsm_state_t current_state;
   uint16_t reference_reading[3U];
-  uint16_t voted_ppo2;
   system_cell_type_t cell_type;
   uint16_t battery_mv;
 } internal_state_t;
@@ -61,6 +60,7 @@ typedef struct{
   uint16_t ppo2_x1000[THREE_CELLS];
   uint32_t timestamp_ms;
   sensor_vote_result_t voted_sensor;
+  uint16_t voted_ppo2;
 } ppo2_t;
 
 system_state_t system_init(system_cell_type_t cell_type);
