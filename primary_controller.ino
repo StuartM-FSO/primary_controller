@@ -478,7 +478,7 @@ fsm_state_t run_scheduled_tasks(const uint32_t now){
       Serial.println("Failure getting failed_attempts");
       return FSM_FAILURE_RECOVERABLE;
     }
-    if(failed_attempts > MAXIMUM_ALLOWED_FAILED_ATTEMPTS){
+    if(failed_attempts >= MAXIMUM_ALLOWED_FAILED_ATTEMPTS){
       Serial.println("Max failed attempts reached");
       return FSM_FAILURE_RECOVERABLE;
     }
@@ -706,12 +706,7 @@ system_state_t screen_release_button(void){
 system_state_t screen_print_mv(void){
   char buffer[FORMATTING_INTEGER_STR_LEN];
   uint16_t reading_raw[THREE_CELLS];
-  internal_state_t local_state = {};
   ppo2_t local_ppo2_state = {};
-
-  if(system_get_loop_state(&local_state) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
 
   if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
@@ -748,15 +743,8 @@ system_state_t screen_print_status(const bool calibration_available){
 }
 
 system_state_t screen_print_ppo2(void){
-  uint16_t current_read[THREE_CELLS] = {};
-  uint16_t current_ppo2 = 0U;
   char buffer[FORMATTING_PPO2_STR_LEN] = {};
-  internal_state_t local_state = {};
   ppo2_t local_ppo2_state = {};
-
-  if(system_get_loop_state(&local_state) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
 
   if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
