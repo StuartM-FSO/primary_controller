@@ -22,8 +22,13 @@ constexpr uint16_t HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MIN_MV = 71U; // Limit to 
 constexpr uint16_t HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MAX_MV = 143U; // Limit to be established through testing
 
 constexpr uint8_t SCREEN_LINE_PPO2 = 0U;
+constexpr uint8_t SCREEN_COL_PPO2 = 0U;
 constexpr uint8_t SCREEN_LINE_MV = 8U;
+constexpr uint8_t SCREEN_COL_MV = 0U;
 constexpr uint8_t SCREEN_LINE_STATUS = 24U;
+constexpr uint8_t SCREEN_COL_STATUS = 0U;
+constexpr uint8_t SCREEN_LINE_BATTERY = 32U;
+constexpr uint8_t SCREEN_COL_BATTERY = 0U;
 
 void setup() {
   Serial.begin(115200);
@@ -99,13 +104,14 @@ void loop() {
 
 // 00 - WIP
 
-uint32_t get_battery_mv(void){
+uint16_t get_battery_mv(void){
   const uint32_t REFERENCE_MV = 3300U;
   const uint32_t DIVIDER_NUM = 2U;
   const uint32_t ADC_MAX = 1023U;
 
   uint32_t raw_value = analogRead(BAT_DET_PIN);
-  return (raw_value * REFERENCE_MV * DIVIDER_NUM + ADC_MAX / 2) / ADC_MAX;
+  uint32_t battery_mv = (raw_value * REFERENCE_MV * DIVIDER_NUM + ADC_MAX / 2) / ADC_MAX;
+  return (uint16_t)battery_mv;
 }
 
 bool are_all_cells_in_range_for_calibration(uint16_t cells[]){
@@ -445,7 +451,7 @@ fsm_state_t run_scheduled_tasks(const uint32_t now){
 
 system_state_t scheduler_read_battery(const uint32_t now, const uint32_t last_time){
   if(has_timer_elapsed(now, last_time, 1000u)){
-    uint32_t battery_mv = get_battery_mv();
+    uint16_t battery_mv = get_battery_mv();
     Serial.print("Battery mV: ");
     Serial.println(battery_mv);
     if(system_set_battery_read_time(now) != STATE_OK){
@@ -585,6 +591,10 @@ system_state_t screen_data_mode(const bool calibration_available){
   if(screen_print_status(calibration_available) != STATE_OK){
     return STATE_FAILED_FUNCTION_CALL;
   }
+
+  if(screen_print_battery() != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
   
   if(display_update() != DISPLAY_STATUS_OK){
     Serial.println("Display update failed");
@@ -669,7 +679,7 @@ system_state_t screen_print_mv(void){
 system_state_t screen_print_status(const bool calibration_available){
   display_set_cursor(0u, SCREEN_LINE_STATUS);
   if(calibration_available){
-    display_print("CALIBRATE NOW?");
+    display_print("               ");
   } else{
     display_print("CAL UNAVAILABLE");
   }
@@ -703,6 +713,21 @@ system_state_t screen_print_ppo2(void){
     display_set_colour(DISPLAY_WHITE, DISPLAY_BLACK);
     display_print(" ");
   }
+  return STATE_OK;
+}
+
+system_state_t screen_print_battery(void){
+  internal_state_t local_state = {};
+  char buffer[FORMATTING_VOLTAGE_STR_LEN];
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  format_mV_to_V(local_state.battery_mv, buffer);
+  
+  display_set_cursor(0,16);
+  display_print("Battery: ");
+  display_print(buffer);
   return STATE_OK;
 }
 

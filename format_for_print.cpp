@@ -47,4 +47,26 @@ void format_integer_for_display(uint16_t value, char buffer[FORMATTING_INTEGER_S
   buffer[pos] = '\0';
 }
 
+void format_mV_to_V(const uint16_t value, char output[FORMATTING_PPO2_STR_LEN]){
+    uint16_t integer_part;
+    uint16_t fractional_part;
+    bool within_bounds = (value <= 9999U);
+
+    if(within_bounds){
+      integer_part = value / 1000u;
+      fractional_part = value % 1000u;
+      output[0] = (char)('0' + integer_part);
+      output[1] = '.';
+      output[2] = (char)('0' + (fractional_part / 100u));
+      output[3] = 'V';
+      output[4] = '\0';
+    } else {
+      output[0] = '-';
+      output[1] = '.';
+      output[2] = '-';
+      output[3] = 'V';
+      output[4] = '\0';
+    }
+}
+
 // Private

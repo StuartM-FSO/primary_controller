@@ -194,7 +194,7 @@ system_state_t system_set_battery_read_time(const uint32_t now){
   return STATE_OK;
 }
 
-system_state_t system_set_battery_mv(const uint32_t battery_mv){
+system_state_t system_set_battery_mv(const uint16_t battery_mv){
   if(!state.initialised){
     return STATE_UNINITIALISED;
   }
