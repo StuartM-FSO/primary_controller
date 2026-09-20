@@ -110,9 +110,7 @@ void loop() {
 
 system_state_t prepare_payload(){
   ppo2_t local_ppo2_state = {};
-  uint16_t ppo2_x1000[THREE_CELLS] = {0U};
   operational_state_t operational_state = OPSTATE_DATAMODE;
-  sensor_vote_result_t voted = SENSOR_UNINITIALISED;
   switchstate_t slider = gpio_slide_switch_on();
 
   if(slider == SWITCH_ON){
@@ -127,9 +125,7 @@ system_state_t prepare_payload(){
     return STATE_FAILED_FUNCTION_CALL;
   }
 
-
-
-  host_load_packet(local_ppo2_state.ppo2_x1000, operational_state, voted);
+  host_load_packet(local_ppo2_state.ppo2_x1000, operational_state, local_ppo2_state.voted_sensor);
   return STATE_OK;
 }
 
