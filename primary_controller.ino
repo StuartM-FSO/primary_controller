@@ -642,9 +642,9 @@ system_state_t screen_print_mv(void){
 system_state_t screen_print_status(const bool calibration_available){
   display_set_cursor(0u, SCREEN_LINE_STATUS);
   if(calibration_available){
-    display_print("Calibrate now?");
+    display_print("CALIBRATE NOW?");
   } else{
-    display_print("Cal unavailable");
+    display_print("CAL UNAVAILABLE");
   }
   return STATE_OK;
 }

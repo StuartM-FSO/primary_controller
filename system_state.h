@@ -41,7 +41,7 @@ typedef struct{
   bool initialised;
   bool main_led_on;
   bool adc_online;
-  bool display_changed;
+  bool display_requires_update;
   fsm_state_t current_state;
   uint16_t reference_reading[3U];
   sensor_vote_result_t voted_sensor;

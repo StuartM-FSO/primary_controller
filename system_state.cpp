@@ -24,7 +24,7 @@ system_state_t system_init(system_cell_type_t cell_type){
   state.current_state = FSM_START_UP;
   state.main_led_on = false;
   state.adc_online = false;
-  state.display_changed = true;
+  state.display_requires_update = true;
   state.voted_ppo2 = 0U;
   state.voted_sensor = SENSOR_UNINITIALISED;
 
@@ -58,7 +58,7 @@ system_state_t system_get_loop_state(internal_state_t *local_state){
 
   local_state->current_state = state.current_state;
   local_state->adc_online = state.adc_online;
-  local_state->display_changed = state.display_changed;
+  local_state->display_requires_update = state.display_requires_update;
   local_state->main_led_on = state.main_led_on;
   local_state->voted_ppo2 = state.voted_ppo2;
   local_state->voted_sensor = state.voted_sensor;
@@ -115,7 +115,7 @@ system_state_t system_set_display_changed(const bool changed){
     return STATE_UNINITIALISED;
   }
 
-  state.display_changed = changed;
+  state.display_requires_update = changed;
   return STATE_OK;
 }
 
