@@ -106,135 +106,21 @@ void loop() {
   }
 }
 
+//  Functions
+// 00 - WIP
+// 01 - FSM Handlers
+// 02 - Sceheduler Functions
+// 03 - Display
+// 04 - General Helpers
+// 05 - PPO2, Cell and Payload
+
 // 00 - WIP
 
-system_state_t prepare_payload(){
-  ppo2_t local_ppo2_state = {};
-  operational_state_t operational_state = OPSTATE_DATAMODE;
-  switchstate_t slider = gpio_slide_switch_on();
 
-  if(slider == SWITCH_ON){
-    operational_state = OPSTATE_DATAMODE;
-  } else if(slider == SWITCH_OFF){
-    operational_state = OPSTATE_DIVEMODE;
-  } else {
-    return STATE_INVALID_CONDITION;
-  }
 
-  if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
 
-  host_load_packet(local_ppo2_state.ppo2_x1000, operational_state, local_ppo2_state.voted_sensor);
-  return STATE_OK;
-}
 
-system_state_t set_state_ppo2_x1000(uint16_t cells_filtered[]){
-  uint16_t ppo2_x1000[THREE_CELLS] = {0U};
 
-  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
-    if(convert_raw_to_ppo2(cells_filtered[channel], channel, &ppo2_x1000[channel]) != STATE_OK){
-      return STATE_FAILED_FUNCTION_CALL;
-    }
-  }
-  if(system_set_ppo2(ppo2_x1000) != STATE_OK){
-    return STATE_FAILED_FUNCTION_CALL;
-  }
-  return STATE_OK;
-}
-
-uint16_t get_battery_mv(void){
-  const uint32_t REFERENCE_MV = 3300U;
-  const uint32_t DIVIDER_NUM = 2U;
-  const uint32_t ADC_MAX = 1023U;
-
-  uint32_t raw_value = analogRead(BAT_DET_PIN);
-  uint32_t battery_mv = (raw_value * REFERENCE_MV * DIVIDER_NUM + ADC_MAX / 2) / ADC_MAX;
-  return (uint16_t)battery_mv;
-}
-
-bool are_all_cells_in_range_for_calibration(uint16_t cells[]){
-  uint16_t low_limit_mv = 0U;
-  uint16_t high_limit_mv = 0U;
-  uint16_t converted_mv = 0U;
-  internal_state_t local_state = {};
-
-  if(system_get_loop_state(&local_state) != STATE_OK){
-    return false;
-  }
-
-  if(local_state.cell_type == SYSTEM_LOW_OUTPUT_CELL){
-    low_limit_mv = LOW_OUTPUT_CALIBRATION_ACCEPTABLE_MIN_MV;
-    high_limit_mv = LOW_OUTPUT_CALIBRATION_ACCEPTABLE_MAX_MV;
-  } else {
-    low_limit_mv = HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MIN_MV;
-    high_limit_mv = HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MAX_MV;
-  }
-
-  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
-    converted_mv = adc_convert_raw_to_mV(cells[channel]);
-    if((converted_mv < low_limit_mv) || (converted_mv > high_limit_mv)){
-      return false;
-    }
-  }
-  return true;
-}
-
-sensor_vote_result_t get_voted_sensor(uint16_t *const voted_ppo2){
-  if((voted_ppo2 == NULL)){
-    return SENSOR_FAULT;
-  }
-  
-  const uint8_t SENSOR_0 = 0U;
-  const uint8_t SENSOR_1 = 1U;
-  const uint8_t SENSOR_2 = 2U;
-  const uint8_t AVERAGE_OF_3_SENSORS = 3U;
-  const uint8_t AVERAGE_OF_2_SENSORS = 2U;
-  uint16_t d01;
-  uint16_t d02;
-  uint16_t d12;
-  ppo2_t local_ppo2_state = {};
-
-  if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
-    return SENSOR_FAULT;
-  }
-
-  d01 = diff_u16(local_ppo2_state.ppo2_x1000[SENSOR_0], local_ppo2_state.ppo2_x1000[SENSOR_1]);
-  d02 = diff_u16(local_ppo2_state.ppo2_x1000[SENSOR_0], local_ppo2_state.ppo2_x1000[SENSOR_2]);
-  d12 = diff_u16(local_ppo2_state.ppo2_x1000[SENSOR_1], local_ppo2_state.ppo2_x1000[SENSOR_2]);
-  if ((d01 <= MAX_DEVIATION_FROM_SETPOINT) && (d02 <= MAX_DEVIATION_FROM_SETPOINT) && (d12 <= MAX_DEVIATION_FROM_SETPOINT)){
-    *voted_ppo2 = (uint16_t)((local_ppo2_state.ppo2_x1000[SENSOR_0] + local_ppo2_state.ppo2_x1000[SENSOR_1] + local_ppo2_state.ppo2_x1000[SENSOR_2]) / AVERAGE_OF_3_SENSORS);
-    return SENSOR_ALL_VALID;
-  }
-
-  uint8_t pair_a;
-  uint8_t pair_b;
-  sensor_vote_result_t rejected;
-  uint16_t min_deviation;
-
-  pair_a = SENSOR_0;
-  pair_b = SENSOR_1;
-  rejected = SENSOR_2_REJECTED;
-  min_deviation = d01;
-  if(d02 < min_deviation){
-    pair_a = SENSOR_0;
-    pair_b = SENSOR_2;
-    rejected = SENSOR_1_REJECTED;
-    min_deviation = d02;
-  }
-  if(d12 < min_deviation){
-    pair_a = SENSOR_1;
-    pair_b = SENSOR_2;
-    rejected = SENSOR_0_REJECTED;
-    min_deviation = d12;
-  }
-  *voted_ppo2 = (uint16_t)((local_ppo2_state.ppo2_x1000[pair_a] + local_ppo2_state.ppo2_x1000[pair_b]) / AVERAGE_OF_2_SENSORS);
-  return rejected;
-}
-
-static uint16_t diff_u16(const uint16_t a, const uint16_t b){
-  return (a > b) ? (a - b) : (b - a);
-}
 
 
 
@@ -821,4 +707,134 @@ system_state_t convert_raw_to_ppo2(const uint16_t raw, const uint8_t channel, ui
   if (ppo2 > UINT16_MAX) return STATE_OVERFLOW;
   *raw_converted_to_ppo2 = (uint16_t)ppo2;
   return STATE_OK;
+}
+
+uint16_t get_battery_mv(void){
+  const uint32_t REFERENCE_MV = 3300U;
+  const uint32_t DIVIDER_NUM = 2U;
+  const uint32_t ADC_MAX = 1023U;
+
+  uint32_t raw_value = analogRead(BAT_DET_PIN);
+  uint32_t battery_mv = (raw_value * REFERENCE_MV * DIVIDER_NUM + ADC_MAX / 2) / ADC_MAX;
+  return (uint16_t)battery_mv;
+}
+
+// 05 - PPO2, Cell and Payload
+
+system_state_t prepare_payload(){
+  ppo2_t local_ppo2_state = {};
+  operational_state_t operational_state = OPSTATE_DATAMODE;
+  switchstate_t slider = gpio_slide_switch_on();
+
+  if(slider == SWITCH_ON){
+    operational_state = OPSTATE_DATAMODE;
+  } else if(slider == SWITCH_OFF){
+    operational_state = OPSTATE_DIVEMODE;
+  } else {
+    return STATE_INVALID_CONDITION;
+  }
+
+  if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+
+  host_load_packet(local_ppo2_state.ppo2_x1000, operational_state, local_ppo2_state.voted_sensor);
+  return STATE_OK;
+}
+
+system_state_t set_state_ppo2_x1000(uint16_t cells_filtered[]){
+  uint16_t ppo2_x1000[THREE_CELLS] = {0U};
+
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    if(convert_raw_to_ppo2(cells_filtered[channel], channel, &ppo2_x1000[channel]) != STATE_OK){
+      return STATE_FAILED_FUNCTION_CALL;
+    }
+  }
+  if(system_set_ppo2(ppo2_x1000) != STATE_OK){
+    return STATE_FAILED_FUNCTION_CALL;
+  }
+  return STATE_OK;
+}
+
+bool are_all_cells_in_range_for_calibration(uint16_t cells[]){
+  uint16_t low_limit_mv = 0U;
+  uint16_t high_limit_mv = 0U;
+  uint16_t converted_mv = 0U;
+  internal_state_t local_state = {};
+
+  if(system_get_loop_state(&local_state) != STATE_OK){
+    return false;
+  }
+
+  if(local_state.cell_type == SYSTEM_LOW_OUTPUT_CELL){
+    low_limit_mv = LOW_OUTPUT_CALIBRATION_ACCEPTABLE_MIN_MV;
+    high_limit_mv = LOW_OUTPUT_CALIBRATION_ACCEPTABLE_MAX_MV;
+  } else {
+    low_limit_mv = HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MIN_MV;
+    high_limit_mv = HIGH_OUTPUT_CALIBRATION_ACCEPTABLE_MAX_MV;
+  }
+
+  for(uint8_t channel = 0U; channel < THREE_CELLS; channel++){
+    converted_mv = adc_convert_raw_to_mV(cells[channel]);
+    if((converted_mv < low_limit_mv) || (converted_mv > high_limit_mv)){
+      return false;
+    }
+  }
+  return true;
+}
+
+sensor_vote_result_t get_voted_sensor(uint16_t *const voted_ppo2){
+  if((voted_ppo2 == NULL)){
+    return SENSOR_FAULT;
+  }
+  
+  const uint8_t SENSOR_0 = 0U;
+  const uint8_t SENSOR_1 = 1U;
+  const uint8_t SENSOR_2 = 2U;
+  const uint8_t AVERAGE_OF_3_SENSORS = 3U;
+  const uint8_t AVERAGE_OF_2_SENSORS = 2U;
+  uint16_t d01;
+  uint16_t d02;
+  uint16_t d12;
+  ppo2_t local_ppo2_state = {};
+
+  if(system_get_ppo2(&local_ppo2_state) != STATE_OK){
+    return SENSOR_FAULT;
+  }
+
+  d01 = diff_u16(local_ppo2_state.ppo2_x1000[SENSOR_0], local_ppo2_state.ppo2_x1000[SENSOR_1]);
+  d02 = diff_u16(local_ppo2_state.ppo2_x1000[SENSOR_0], local_ppo2_state.ppo2_x1000[SENSOR_2]);
+  d12 = diff_u16(local_ppo2_state.ppo2_x1000[SENSOR_1], local_ppo2_state.ppo2_x1000[SENSOR_2]);
+  if ((d01 <= MAX_DEVIATION_FROM_SETPOINT) && (d02 <= MAX_DEVIATION_FROM_SETPOINT) && (d12 <= MAX_DEVIATION_FROM_SETPOINT)){
+    *voted_ppo2 = (uint16_t)((local_ppo2_state.ppo2_x1000[SENSOR_0] + local_ppo2_state.ppo2_x1000[SENSOR_1] + local_ppo2_state.ppo2_x1000[SENSOR_2]) / AVERAGE_OF_3_SENSORS);
+    return SENSOR_ALL_VALID;
+  }
+
+  uint8_t pair_a;
+  uint8_t pair_b;
+  sensor_vote_result_t rejected;
+  uint16_t min_deviation;
+
+  pair_a = SENSOR_0;
+  pair_b = SENSOR_1;
+  rejected = SENSOR_2_REJECTED;
+  min_deviation = d01;
+  if(d02 < min_deviation){
+    pair_a = SENSOR_0;
+    pair_b = SENSOR_2;
+    rejected = SENSOR_1_REJECTED;
+    min_deviation = d02;
+  }
+  if(d12 < min_deviation){
+    pair_a = SENSOR_1;
+    pair_b = SENSOR_2;
+    rejected = SENSOR_0_REJECTED;
+    min_deviation = d12;
+  }
+  *voted_ppo2 = (uint16_t)((local_ppo2_state.ppo2_x1000[pair_a] + local_ppo2_state.ppo2_x1000[pair_b]) / AVERAGE_OF_2_SENSORS);
+  return rejected;
+}
+
+static uint16_t diff_u16(const uint16_t a, const uint16_t b){
+  return (a > b) ? (a - b) : (b - a);
 }
